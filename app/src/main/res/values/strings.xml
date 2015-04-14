@@ -10,4 +10,19 @@
     <string name="msg_alert_ask_permission">GPS is required for tracking. Do you want to go to the Settings menu and enable it?</string>
     <string name="msg_alert_label_settings">Settings</string>
     <string name="msg_alert_cancel">Cancel</string>
+
+    <string name="operator_phone_number">+49 176 8046 8925</string>
+    <string name="lbl_login_button">Login</string>
+    <string name="lbl_password">Password</string>
+    <string name="lbl_username">Username</string>
+    <string name="lbl_login">Driver login</string>
+
+    <string name="lbl_login_in_progress">Login in progress</string>
+    <string name="btn_ok">OK</string>
+    <string name="msg_alert_login_error">Login failed</string>
+    <string name="title_activity_meetings">MeetingsActivity</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="str_logout">Logout</string>
 </resources>

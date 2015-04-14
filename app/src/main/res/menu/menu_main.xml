@@ -1,8 +1,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools" tools:context=".LoginActivity">
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.rinf.bringx.Views.LoginActivity">
     <item android:id="@+id/action_call_operator" android:title="@string/str_call_operator" android:orderInCategory="100" app:showAsAction="never" />
     <item android:id="@+id/action_rejected_customer" android:title="@string/str_pickup_delivery_rej_by_customer" android:orderInCategory="101" app:showAsAction="never" />
     <item android:id="@+id/action_not_possible_driver" android:title="@string/str_pickup_delivery_not_possible_driver" android:orderInCategory="102" app:showAsAction="never" />
+    <item android:id="@+id/action_logout" android:title="@string/str_logout" android:orderInCategory="103" app:showAsAction="never" />
     <item android:id="@+id/action_exit_app" android:title="@string/str_exit_app" android:orderInCategory="103" app:showAsAction="never" />
 </menu>

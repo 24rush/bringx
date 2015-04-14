@@ -13,7 +13,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.rinf.bringx.LoginActivity;
+import com.rinf.bringx.Views.LoginActivity;
 import com.rinf.bringx.R;
 
 public class GPSTracker extends Service implements LocationListener {
@@ -180,7 +180,7 @@ public class GPSTracker extends Service implements LocationListener {
     @Override
     public void onDestroy() {
         Log.d("[bringx]", "Destroying GPS service.");
-        
+
         stopForeground(true);
         stopLocationUpdates();
     }
