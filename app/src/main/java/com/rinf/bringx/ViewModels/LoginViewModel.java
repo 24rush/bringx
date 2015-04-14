@@ -5,6 +5,7 @@ import com.rinf.bringx.EasyBindings.Observable;
 import com.rinf.bringx.Views.LoginActivity;
 import com.rinf.bringx.utils.Error;
 import com.rinf.bringx.utils.IStatusHandler;
+import com.rinf.bringx.utils.Log;
 import com.rinf.bringx.utils.ServiceProxy;
 
 import org.json.JSONObject;
@@ -62,10 +63,12 @@ public class LoginViewModel {
         };
 
         ServiceProxy proxy = new ServiceProxy(statusHandler);
-        proxy.Login(UserName.get(), Password.get(), "");
+        proxy.Login(UserName.get(), Password.get(), App.DeviceManager().DeviceId());
     }
 
     public void Logout() {
+        Log.d("Loging out user: " + UserName.get());
+
         UserName.set("");
         Password.set("");
         IsLoggedIn.set(false);

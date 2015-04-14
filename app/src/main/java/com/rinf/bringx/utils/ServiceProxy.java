@@ -1,11 +1,18 @@
 package com.rinf.bringx.utils;
 
-import android.app.ProgressDialog;
-import android.content.Intent;
 import android.os.AsyncTask;
+
+import com.rinf.bringx.App;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+class URLS {
+    public static String LoginURL = "http://auftrag.bringx.com/json/login/1";
+}
 
 public class ServiceProxy {
     private IStatusHandler _statusHandler;
@@ -20,24 +27,30 @@ public class ServiceProxy {
     }
 }
 
-class UserLoginTask extends AsyncTask<String, Void, JSONObject> {
+abstract class AsyncTaskReport <Params, Progress, Return> extends AsyncTask<Params, Progress, Return> {
+    protected IStatusHandler _statusHandler;
 
-    private IStatusHandler _statusHandler;
-
-    public UserLoginTask(IStatusHandler statusHandler) {
+    public AsyncTaskReport(IStatusHandler statusHandler) {
         _statusHandler = statusHandler;
     }
 
-    private void ReportError(int code, String message) {
+    protected void ReportError(int code, String message) {
         if (_statusHandler != null) {
             _statusHandler.OnError(new Error(code, message));
         }
     }
 
-    private void ReportSuccess(JSONObject response) {
+    protected void ReportSuccess(JSONObject response) {
         if (_statusHandler != null) {
             _statusHandler.OnSuccess(response);
         }
+    }
+}
+
+class UserLoginTask extends AsyncTaskReport<String, Void, JSONObject> {
+
+    public UserLoginTask(IStatusHandler statusHandler) {
+        super(statusHandler);
     }
 
     @Override
@@ -50,15 +63,27 @@ class UserLoginTask extends AsyncTask<String, Void, JSONObject> {
         if (params.length != 3) {
             return null;
         }
-        //String jsonStr = userFunction.loginUser(params[0], params[1], params[2]);
+
         JSONObject jsonObj = null;
 
+        Log.d("Performing login for: " + params[0] + " on device: " + params[2]);
+
         try {
+            JSONObject jsonParams = new JSONObject();
+            jsonParams.put("hidden", "0");
+            jsonParams.put("mobileid", params[2]);
+            jsonParams.put("username", params[0]);
+            jsonParams.put("password", DataUtils.md5(params[1]));
+
+            jsonObj = new JSONObject(App.Requester().POST(URLS.LoginURL, jsonParams));
+
             Thread.sleep(2000, 0);
+
             if (params[0].equals("a") && params[1].equals("b"))
-            jsonObj = new JSONObject("{\"status\":\"true\"}");
+                jsonObj = new JSONObject("{\"status\":\"true\"}");
             else
                 jsonObj = new JSONObject("{\"status\":\"false\"}");
+
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -72,6 +97,7 @@ class UserLoginTask extends AsyncTask<String, Void, JSONObject> {
     protected void onPostExecute(JSONObject jsonObj) {
         if (jsonObj == null) {
             ReportError(500, "Server error");
+            return;
         }
 
         try {
@@ -83,5 +109,32 @@ class UserLoginTask extends AsyncTask<String, Void, JSONObject> {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+}
+
+class DataUtils {
+    public static final String md5(final String s) {
+        final String MD5 = "MD5";
+        try {
+            // Create MD5 Hash
+            MessageDigest digest = java.security.MessageDigest
+                    .getInstance(MD5);
+            digest.update(s.getBytes());
+            byte messageDigest[] = digest.digest();
+
+            // Create Hex String
+            StringBuilder hexString = new StringBuilder();
+            for (byte aMessageDigest : messageDigest) {
+                String h = Integer.toHexString(0xFF & aMessageDigest);
+                while (h.length() < 2)
+                    h = "0" + h;
+                hexString.append(h);
+            }
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

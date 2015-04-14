@@ -24,6 +24,8 @@ import com.rinf.bringx.utils.DataEndpoint;
 import com.rinf.bringx.utils.Localization;
 import com.rinf.bringx.utils.Log;
 
+import java.util.concurrent.Callable;
+
 public class LoginActivity extends ActionBarActivity {
 
     private Bindings Bindings = new Bindings();
@@ -44,6 +46,15 @@ public class LoginActivity extends ActionBarActivity {
 
         Bindings.BindVisible(Controls.get(R.id.layout_login), VM.LoginViewModel.IsLoggedIn, Mode.Invert);
         Bindings.BindVisible(Controls.get(R.id.layout_meetings), VM.LoginViewModel.IsLoggedIn);
+        Bindings.BindChanged(VM.LoginViewModel.IsLoggedIn, new INotifier<Boolean>() {
+            @Override
+            public void OnValueChanged(Boolean value) {
+                if (value == false)
+                    return;
+
+                onSuccessfulLogin();
+            }
+        });
 
         Bindings.BindText(Controls.get(R.id.loginUserName), VM.LoginViewModel.UserName, Mode.TwoWay);
         Bindings.BindText(Controls.get(R.id.loginPassword), VM.LoginViewModel.Password, Mode.TwoWay);
@@ -56,8 +67,7 @@ public class LoginActivity extends ActionBarActivity {
                     loginProgressDialog.setMessage(localization.getText(R.string.lbl_login_in_progress));
                     loginProgressDialog.setCancelable(false);
                     loginProgressDialog.show();
-                }
-                else {
+                } else {
                     if (loginProgressDialog != null)
                         loginProgressDialog.dismiss();
                 }
@@ -83,17 +93,6 @@ public class LoginActivity extends ActionBarActivity {
                 VM.LoginViewModel.DoLogin();
             }
         }, this);
-
-        // Check if alert should be triggered to enable GPS/3G
-        GPSTracker tracker = new GPSTracker(this);
-        tracker.CheckLocationProviders();
-
-        if (!tracker.IsGPSEnabled() && !tracker.IsNetworkEnabled()) {
-            showSettingsAlert();
-        }
-
-        dataEndpoint = new DataEndpoint();
-        dataEndpoint.GetOrders();
     }
 
     @Override
@@ -127,6 +126,35 @@ public class LoginActivity extends ActionBarActivity {
         alertDialog.show();
     }
 
+    private void onSuccessfulLogin() {
+        // Check if alert should be triggered to enable GPS/3G
+        GPSTracker tracker = new GPSTracker(this);
+        tracker.CheckLocationProviders();
+
+        if (!tracker.IsGPSEnabled() && !tracker.IsNetworkEnabled()) {
+            showSettingsAlert();
+        }
+
+        dataEndpoint = new DataEndpoint();
+        dataEndpoint.GetOrders();
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu (Menu menu) {
+        menu.clear();
+
+        menu.add(0, R.id.action_call_operator, 100, localization.getText(R.string.str_call_operator));
+        menu.add(0, R.id.action_exit_app, 104, localization.getText(R.string.str_exit_app));
+
+        if (VM.LoginViewModel.IsLoggedIn.get() == true) {
+            menu.add(0, R.id.action_rejected_customer, 101, localization.getText(R.string.str_pickup_delivery_rej_by_customer));
+            menu.add(0, R.id.action_not_possible_driver, 102, localization.getText(R.string.str_pickup_delivery_not_possible_driver));
+            menu.add(0, R.id.action_logout, 103, localization.getText(R.string.str_logout));
+        }
+
+        return true;
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -137,8 +165,15 @@ public class LoginActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_exit_app:
-                stopService(new Intent(this, GPSTracker.class));
-                finish();
+                showOKCancelDialog(R.string.msg_exit_app, new Callable() {
+                    @Override
+                    public Object call() throws Exception {
+                        stopService(new Intent(LoginActivity.this, GPSTracker.class));
+                        finish();
+
+                        return null;
+                    }
+                });
 
                 break;
 
@@ -151,11 +186,67 @@ public class LoginActivity extends ActionBarActivity {
                 break;
 
             case R.id.action_logout:
-                VM.LoginViewModel.Logout();
+                showOKCancelDialog(R.string.msg_logout_app, new Callable() {
+                    @Override
+                    public Object call() throws Exception {
+                        VM.LoginViewModel.Logout();
 
+                        return null;
+                    }
+                });
+
+                break;
+
+            case R.id.action_rejected_customer:
+                showOKCancelDialog(R.string.msg_rejected_customer, new Callable() {
+                    @Override
+                    public Object call() throws Exception {
+                        //TODO
+
+                        return null;
+                    }
+                });
+
+                break;
+
+            case R.id.action_not_possible_driver:
+                showOKCancelDialog(R.string.msg_rejected_customer, new Callable() {
+                    @Override
+                    public Object call() throws Exception {
+                        //TODO
+
+                        return null;
+                    }
+                });
+                
                 break;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showOKCancelDialog(int msgId, final Callable onOk) {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this)
+                .setTitle(localization.getText(R.string.msg_alert_confirmation_title))
+                .setMessage(localization.getText(msgId))
+
+                .setPositiveButton(localization.getText(R.string.btn_ok),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                try {
+                                    onOk.call();
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        })
+                .setNegativeButton(localization.getText(R.string.btn_cancel),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        });
+
+        alertDialog.show();
     }
 }
