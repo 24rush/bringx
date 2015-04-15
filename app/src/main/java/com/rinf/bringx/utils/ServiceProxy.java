@@ -12,6 +12,8 @@ import java.security.NoSuchAlgorithmException;
 
 class URLS {
     public static String LoginURL = "http://auftrag.bringx.com/json/login/1";
+    public static String JobsURL = "http://auftrag.bringx.com/json/route/";
+    public static String StatusURL = "http://auftrag.bringx.com/json/drp/";
 }
 
 public class ServiceProxy {
@@ -24,6 +26,11 @@ public class ServiceProxy {
     public void Login(String userName, String password, String android_id) {
         UserLoginTask loginTask = new UserLoginTask(_statusHandler);
         loginTask.execute(userName, password, android_id);
+    }
+
+    public void GetMeetingsList(String userName, String android_id) {
+        MeetingsListTask meetingsListTask = new MeetingsListTask(_statusHandler);
+        meetingsListTask.execute(userName, android_id);
     }
 }
 
@@ -105,6 +112,61 @@ class UserLoginTask extends AsyncTaskReport<String, Void, JSONObject> {
                 ReportSuccess(jsonObj);
             } else {
                 ReportError(1, "Invalid login credentials");
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class MeetingsListTask extends AsyncTaskReport<String, Void, JSONObject> {
+
+    public MeetingsListTask(IStatusHandler statusHandler) {
+        super(statusHandler);
+    }
+
+    @Override
+    protected JSONObject doInBackground(String... params) {
+        if (params.length != 3) {
+            return null;
+        }
+
+        JSONObject jsonObj = null;
+
+        Log.d("Performing GetMeetingsList for: " + params[0] + " on device: " + params[1]);
+
+        try {
+            JSONObject jsonParams = new JSONObject();
+            jsonParams.put("mobileid", params[1]);
+
+            jsonObj = new JSONObject(App.Requester().POST(URLS.JobsURL, jsonParams));
+
+            Thread.sleep(2000, 0);
+
+            jsonObj = new JSONObject("{\"status\":\"true\"}");
+
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return jsonObj;
+    }
+
+    @Override
+    protected void onPostExecute(JSONObject jsonObj) {
+        if (jsonObj == null) {
+            ReportError(500, "Server error");
+            return;
+        }
+
+        try {
+            if (jsonObj.getString("status").equals("true")) {
+                ReportSuccess(jsonObj);
+            } else {
+                ReportError(1, "Error getting meetings list");
             }
         } catch (JSONException e) {
             e.printStackTrace();

@@ -10,6 +10,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 
 import com.rinf.bringx.EasyBindings.Bindings;
 import com.rinf.bringx.EasyBindings.Controls;
@@ -49,6 +50,8 @@ public class LoginActivity extends ActionBarActivity {
         Bindings.BindChanged(VM.LoginViewModel.IsLoggedIn, new INotifier<Boolean>() {
             @Override
             public void OnValueChanged(Boolean value) {
+                invalidateOptionsMenu();
+
                 if (value == false)
                     return;
 
@@ -141,16 +144,11 @@ public class LoginActivity extends ActionBarActivity {
 
     @Override
     public boolean onPrepareOptionsMenu (Menu menu) {
-        menu.clear();
+        boolean visible = VM.LoginViewModel.IsLoggedIn.get();
 
-        menu.add(0, R.id.action_call_operator, 100, localization.getText(R.string.str_call_operator));
-        menu.add(0, R.id.action_exit_app, 104, localization.getText(R.string.str_exit_app));
-
-        if (VM.LoginViewModel.IsLoggedIn.get() == true) {
-            menu.add(0, R.id.action_rejected_customer, 101, localization.getText(R.string.str_pickup_delivery_rej_by_customer));
-            menu.add(0, R.id.action_not_possible_driver, 102, localization.getText(R.string.str_pickup_delivery_not_possible_driver));
-            menu.add(0, R.id.action_logout, 103, localization.getText(R.string.str_logout));
-        }
+        menu.findItem(R.id.action_rejected_customer).setVisible(visible);
+        menu.findItem(R.id.action_not_possible_driver).setVisible(visible);
+        menu.findItem(R.id.action_logout).setVisible(visible);
 
         return true;
     }
@@ -218,7 +216,7 @@ public class LoginActivity extends ActionBarActivity {
                         return null;
                     }
                 });
-                
+
                 break;
         }
 

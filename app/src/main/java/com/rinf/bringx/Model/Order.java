@@ -1,4 +1,4 @@
-package com.rinf.bringx.utils;
+package com.rinf.bringx.Model;
 
 import org.json.JSONObject;
 

@@ -2,6 +2,8 @@ package com.rinf.bringx.utils;
 
 import android.util.Log;
 
+import com.rinf.bringx.Model.Order;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
