@@ -166,7 +166,7 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, JSONObject> {
             if (jsonObj.getString("status").equals("true")) {
                 ReportSuccess(jsonObj);
             } else {
-                ReportError(1, "Error getting meetings list");
+                ReportError(1, "Error getting meetings");
             }
         } catch (JSONException e) {
             e.printStackTrace();

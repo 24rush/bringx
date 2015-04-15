@@ -6,15 +6,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.provider.Settings;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SubMenu;
-
 import com.rinf.bringx.EasyBindings.Bindings;
 import com.rinf.bringx.EasyBindings.Controls;
-
 import com.rinf.bringx.EasyBindings.ICommand;
 import com.rinf.bringx.EasyBindings.INotifier;
 import com.rinf.bringx.EasyBindings.Bindings.Mode;
@@ -23,7 +21,6 @@ import com.rinf.bringx.ViewModels.VM;
 import com.rinf.bringx.service.GPSTracker;
 import com.rinf.bringx.utils.DataEndpoint;
 import com.rinf.bringx.utils.Localization;
-import com.rinf.bringx.utils.Log;
 
 import java.util.concurrent.Callable;
 
@@ -41,6 +38,13 @@ public class LoginActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setCustomView(R.layout.custom_action_bar);
+        actionBar.setDisplayShowTitleEnabled(false);
+        actionBar.setDisplayShowCustomEnabled(true);
+        actionBar.setDisplayUseLogoEnabled(false);
+        actionBar.setDisplayShowHomeEnabled(false);
 
         localization = new Localization(this);
         new VM();
