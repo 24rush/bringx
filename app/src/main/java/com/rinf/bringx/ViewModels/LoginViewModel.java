@@ -24,8 +24,8 @@ public class LoginViewModel {
     private final String KEY_LOGIN_PASSWORD = "password";
 
     public LoginViewModel() {
-        UserName.set(App.StorageManager().getString(KEY_LOGIN_USER_NAME));
-        Password.set(App.StorageManager().getString(KEY_LOGIN_PASSWORD));
+        UserName.set(App.StorageManager().Credentials().getString(KEY_LOGIN_USER_NAME));
+        Password.set(App.StorageManager().Credentials().getString(KEY_LOGIN_PASSWORD));
 
         if (!UserName.get().equals("") && !Password.equals("")) {
             IsLoggedIn.set(true);
@@ -38,7 +38,7 @@ public class LoginViewModel {
         IsLoggingIn.set(true);
         IsLoggedIn.set(false);
 
-        IStatusHandler statusHandler = new IStatusHandler() {
+        IStatusHandler statusHandler = new IStatusHandler<JSONObject>() {
             @Override
             public void OnError(Error err) {
                 IsLoggingIn.set(false);
@@ -63,7 +63,7 @@ public class LoginViewModel {
         };
 
         ServiceProxy proxy = new ServiceProxy(statusHandler);
-        proxy.Login(UserName.get(), Password.get(), App.DeviceManager().DeviceId());
+        proxy.Login(UserName.get(), Password.get());
     }
 
     public void Logout() {
@@ -80,7 +80,7 @@ public class LoginViewModel {
     }
 
     private void updateCacheCredentials() {
-        App.StorageManager().setString(KEY_LOGIN_USER_NAME, UserName.get());
-        App.StorageManager().setString(KEY_LOGIN_PASSWORD, Password.get());
+        App.StorageManager().Credentials().setString(KEY_LOGIN_USER_NAME, UserName.get());
+        App.StorageManager().Credentials().setString(KEY_LOGIN_PASSWORD, Password.get());
     }
 }

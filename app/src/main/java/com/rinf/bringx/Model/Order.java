@@ -1,53 +1,122 @@
 package com.rinf.bringx.Model;
 
+import org.json.JSONException;
 import org.json.JSONObject;
+
+
+class Cargo {
+    private int _count;
+    private double _price;
+    private String _title;
+    private String _size;
+    private String _weight;
+    private String _info;
+
+    public Cargo(JSONObject parser) {
+        try {
+            _count = parser.getInt("count");
+            _price = parser.getDouble("price");
+            _title = parser.getString("title");
+            _size = parser.optString("size");
+            _weight = parser.optString("weight");
+            _info = parser.optString("info");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class Address {
+    private String _name;
+    private String _company;
+    private String _street;
+    private String _zip;
+    private String _instructions;
+    private String _notes;
+    private String _phone;
+    private String _mail;
+
+    private Double _latitude;
+    private Double _longitude;
+
+    public Address(JSONObject parser) {
+        try {
+            _name = parser.getString("Name");
+            _company = parser.optString("Company");
+            _street = parser.getString("Street");
+            _zip = parser.getString("ZIP");
+            _instructions = parser.optString("Instructions");
+            _notes = parser.optString("Notes");
+            _phone = parser.getString("Phone");
+            _mail = parser.optString("Mail");
+
+            String coord = parser.optString("Coordinates");
+
+            if (coord != null) {
+                String[] values = coord.split(",");
+                _latitude = Double.parseDouble(values[0].trim());
+                _longitude = Double.parseDouble(values[1].trim());
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+}
 
 public class Order {
 
-    private static final String KEY_RESSTATUS = "status";
-    private static final String KEY_DATA = "data";
-
-    // Order
-    private static final String KEY_ORDERID = "DeliveryOrderId";
-    private static final String KEY_UID = "uid";
-    private static final String KEY_DELIVERYPRICE = "Delivery";
-    private static final String KEY_ITEMS = "Order";
-
-    // Items to deliver
-    private static final String KEY_ITEM_COUNT = "count";
-    private static final String KEY_ITEM_TITLE = "title";
-    private static final String KEY_PRICE = "Price";
-
-    // Meeting
-    private static final String KEY_TYPE = "DeliveryType";
-    private static final String KEY_STATUS = "DrpStatus";
-    private static final String KEY_ADDRESS = "Address";
-    private static final String KEY_ADDR_NAME = "Name";
-    private static final String KEY_ADDR_COMPANY = "Company";
-    private static final String KEY_ADDR_STREET = "Street";
-    private static final String KEY_ADDR_CITY = "City";
-    private static final String KEY_ADDR_ZIP = "Zip";
-    private static final String KEY_ADDR_PHONE = "Phone";
-
-    private static final String KEY_ETA = "EstimatedArrival";
-    private static final String KEY_DELAY = "EstimatedDelay";
-
-    private static final String KEY_NOTES = "Notes";
-    private static final String KEY_INSTRUCTIONS = "Instructions";
-
-    private static final String KEY_POSITION = "Position";
-    private static final String KEY_POSX = "X";
-    private static final String KEY_POSY = "Y";
-
-    private static final String KEY_COUNT = "Count";
-
-    public Order(JSONObject src) {
+    public Order() {
 
     }
 
-    private String _orderId;
+    public Order(JSONObject parser) {
+        String idAndVersionStr = null;
 
-    public String OrderId() {
-        return _orderId;
+        try {
+            idAndVersionStr = parser.getString("OrderUID");
+            String[] idAndVersion = idAndVersionStr.split("-");
+            _id = idAndVersion[0];
+            _version = idAndVersion[1];
+
+            _priceGoods = parser.optDouble("Price_Goods");
+            _priceDelivery = parser.getDouble("Price_Delivery");
+            _priceComment = parser.optString("Price_comment");
+
+            _numberGoods = parser.getInt("number_goods");
+
+            JSONObject pickupAddressObj = parser.getJSONObject("Pickup-Address");
+            _pickupAddress = new Address(pickupAddressObj);
+
+            JSONObject deliveryAddressObj = parser.getJSONObject("Delivery-Address");
+            _deliveryAddress = new Address(deliveryAddressObj);
+
+            JSONObject cargo = parser.getJSONObject("Cargo");
+            _cargo = new Cargo(cargo);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String _id;
+    private String _version;
+    private double _priceGoods;
+    private double _priceDelivery;
+    private String _priceComment;
+    private int _numberGoods;
+
+    private Address _pickupAddress;
+    private Address _deliveryAddress;
+
+    private Cargo _cargo;
+
+    public String Id() {
+        return _id;
+    }
+
+    public String Version() {
+        return _version;
     }
 }

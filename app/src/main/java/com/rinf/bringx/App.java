@@ -5,12 +5,12 @@ import android.content.Context;
 
 import com.rinf.bringx.utils.DeviceManager;
 import com.rinf.bringx.utils.Requester;
-import com.rinf.bringx.utils.StorageManager;
+import com.rinf.bringx.storage.Storage;
 
 public class App extends Application {
 
     private static Context _context;
-    private static StorageManager _storageManager;
+    private static Storage _storage;
     private static DeviceManager _deviceManager;
     private static Requester _requester;
 
@@ -24,12 +24,12 @@ public class App extends Application {
         return App._context;
     }
 
-    public static StorageManager StorageManager() {
-        if (_storageManager == null) {
-            _storageManager = new StorageManager();
+    public static Storage StorageManager() {
+        if (_storage == null) {
+            _storage = new Storage();
         }
 
-        return App._storageManager;
+        return App._storage;
     }
 
     public static DeviceManager DeviceManager() {

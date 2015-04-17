@@ -19,7 +19,6 @@ import com.rinf.bringx.EasyBindings.Bindings.Mode;
 import com.rinf.bringx.R;
 import com.rinf.bringx.ViewModels.VM;
 import com.rinf.bringx.service.GPSTracker;
-import com.rinf.bringx.utils.DataEndpoint;
 import com.rinf.bringx.utils.Localization;
 
 import java.util.concurrent.Callable;
@@ -30,8 +29,6 @@ public class LoginActivity extends ActionBarActivity {
     private Controls Controls = new Controls(this);
 
     private Localization localization;
-    private DataEndpoint dataEndpoint;
-
     private ProgressDialog loginProgressDialog;
 
     @Override
@@ -141,9 +138,6 @@ public class LoginActivity extends ActionBarActivity {
         if (!tracker.IsGPSEnabled() && !tracker.IsNetworkEnabled()) {
             showSettingsAlert();
         }
-
-        dataEndpoint = new DataEndpoint();
-        dataEndpoint.GetOrders();
     }
 
     @Override
