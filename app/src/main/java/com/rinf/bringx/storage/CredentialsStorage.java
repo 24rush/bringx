@@ -6,4 +6,9 @@ public class CredentialsStorage extends StorageManager {
     protected String getStorageKey() {
         return "com.ring.bringx.STORAGE_CREDENTIALS";
     }
+
+    @Override
+    protected Object getTypedValue(String value) {
+        return value;
+    }
 }

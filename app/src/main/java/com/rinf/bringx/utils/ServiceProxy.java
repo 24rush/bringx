@@ -6,6 +6,7 @@ import com.rinf.bringx.App;
 import com.rinf.bringx.Model.Meeting;
 import com.rinf.bringx.Model.Order;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -142,14 +143,14 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
             return null;
 
         String userName = (String) params[0];
-        List<Meeting> meetingList = (List<Meeting>)params[1];
+        List<Meeting> meetingList = (List<Meeting>) params[1];
 
         // Determine which orders need to be retrieved
         List<String> orderIdsToRetrive = new ArrayList<String>();
-        Map<String, ?> ordersInCache = App.StorageManager().Orders().getAll();
+        Map<String, Order> ordersInCache = App.StorageManager().Orders().getAll();
 
         for (Meeting meeting : meetingList) {
-            Order cachedOrder = (Order) ordersInCache.get(meeting.OrderID);
+            Order cachedOrder = ordersInCache.get(meeting.OrderID);
             if (cachedOrder == null || !cachedOrder.Version().equals(meeting.OrderVersion)) {
                 orderIdsToRetrive.add(meeting.OrderID);
             }
@@ -157,9 +158,26 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
 
         // Make request to retrieve orders
         List<Order> newOrders = new ArrayList<Order>();
-        newOrders.add(new Order());
-        newOrders.add(new Order());
+        String response = "[{\n  \"OrderUID\": \"1015-01\",\n\"Price_goods\": 12.34, \n\"Price_delivery\": 3.98,\n\"Price_comment\": \"paid by credit card\",\n\"number_goods\": 5,   \n\n\"Pickup-Address\": {\n\t\"Name\": \"Gaststätte Wohnzimmer\",\n\t\"Company\": \"\", \n\t\"Street\": \"Schloßstr. 77b\", \n\t\"ZIP\": \"70176\",\n\t\"Instructions\": \"Please call when arriving, the bell is broken\",\n\t\"Notes\": \"Cheeseburger without Tomatoes please\",\n\t\"Phone\": \"+49 175 5234632\",\n\t\"Mail\": \"\"\n},\n\n\"Delivery-Address\": {\n\t\"Name\": \"Matthias Brunner\",\n\t\"Company\": \"Logistics Start-up\",\n\t\"Street\": \"Böblinger Str. 43\",\n\t\"ZIP\": \"70196\",\n\t\"Instructions\": \"\",\t\n\t\"Notes\":\"\",\n\t\"Phone\": \"0176 8046 8925\",\n\t\"Mail\": \"mbrunner@bringx.com\",\n\t\"Coordinates\": \"42.94321, 9.813242\"\n},\n\n\"Cargo\": \n[\n\t{\n\t\"count\": 6,\n\t\"price\": 5.35,\n\t\"title\": \"Beck beer\",\n\t\"size\":  \"\",\n\t\"weight\": \"\", \n\t\"info\": \"\"\n\t},\n\t{\t\n\t\"count\": 1,\n\t\"price\": 12.56,\n\t\"title\": \"spare ribs with french fries\"\n\t}\t\n]\n}\n]";
+        try {
+            JSONArray resp = new JSONArray(response);
+            for (int i = 0; i < resp.length(); i++) {
+                Order newOrder = new Order(resp.getJSONObject(i));
+                newOrder.DeliveryAddress().Status("pending");
+                newOrders.add(newOrder);
+            }
 
+        } catch (JSONException e) {
+            e.printStackTrace();
+            ReportError(500, e.getLocalizedMessage());
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            ReportError(500, e.getLocalizedMessage());
+            return null;
+        }
+
+        // Save new Orders
         for (Order newOrder : newOrders) {
             App.StorageManager().Orders().setString(newOrder.Id(), newOrder.toString());
         }

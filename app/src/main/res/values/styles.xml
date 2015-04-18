@@ -5,4 +5,28 @@
         <!-- Customize your theme here. -->
     </style>
 
+    <style name="TableRow_Meetings">
+        <item name="android:layout_width">match_parent</item>
+    </style>
+
+    <style name="TableLabel_Meetings">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:paddingRight">5dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAppearance">@android:style/TextAppearance.Medium</item>
+    </style>
+
+    <style name="TableValue_Meetings">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingLeft">10dp</item>
+        <item name="android:layout_weight">2</item>
+        <item name="android:maxLines">4</item>
+        <item name="android:minLines">1</item>
+        <item name="android:ellipsize">none</item>
+        <item name="android:scrollHorizontally">false</item>
+    </style>
+
 </resources>

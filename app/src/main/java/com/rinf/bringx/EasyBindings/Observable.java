@@ -92,6 +92,7 @@ public class Observable<Type extends Object> implements Serializable, IObservabl
 	
 	public void addObserverContext(IContextNotifier<Type> observer, Object context) {
 		m_ContextListeners.add(new ContextualListener<Type>(observer, context));
+        observer.OnValueChanged(m_Value, context);
 	}
 	
 	public void removeObserver(INotifier<Type> observer) {

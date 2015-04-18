@@ -138,6 +138,11 @@ public class LoginActivity extends ActionBarActivity {
         if (!tracker.IsGPSEnabled() && !tracker.IsNetworkEnabled()) {
             showSettingsAlert();
         }
+
+        Bindings.BindText(Controls.get(R.id.value_meeting_eta), VM.MeetingsViewModel.CurrentMeeting.ETA);
+        Bindings.BindText(Controls.get(R.id.value_meeting_destination), VM.MeetingsViewModel.CurrentMeeting.Name);
+        Bindings.BindText(Controls.get(R.id.value_meeting_info), VM.MeetingsViewModel.CurrentMeeting.Instructions);
+        Bindings.BindText(Controls.get(R.id.value_meeting_notes), VM.MeetingsViewModel.CurrentMeeting.Notes);
     }
 
     @Override
@@ -194,6 +199,7 @@ public class LoginActivity extends ActionBarActivity {
                 break;
 
             case R.id.action_rejected_customer:
+
                 showOKCancelDialog(R.string.msg_rejected_customer, new Callable() {
                     @Override
                     public Object call() throws Exception {

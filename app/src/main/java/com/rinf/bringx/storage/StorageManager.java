@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 
 import com.rinf.bringx.App;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class StorageManager <Type> {
@@ -12,6 +13,7 @@ public abstract class StorageManager <Type> {
     private SharedPreferences.Editor _editor;
 
     protected abstract String getStorageKey();
+    protected abstract Type getTypedValue(String value);
 
     public StorageManager() {
         _sharedPrefs = App.Context().getSharedPreferences(getStorageKey(), Context.MODE_PRIVATE);
@@ -27,7 +29,14 @@ public abstract class StorageManager <Type> {
         _editor.commit();
     }
 
-    public Map<String, ?> getAll() {
-        return _sharedPrefs.getAll();
+    public Map<String, Type> getAll() {
+        Map<String, Type> typedValue = new HashMap<String, Type>();
+        Map<String, ?> keyValues = _sharedPrefs.getAll();
+
+        for (String key : keyValues.keySet()) {
+            typedValue.put(key, getTypedValue((String)keyValues.get(key)));
+        }
+
+        return typedValue;
     }
 }
