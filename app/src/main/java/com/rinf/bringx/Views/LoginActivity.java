@@ -11,17 +11,56 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.rinf.bringx.App;
 import com.rinf.bringx.EasyBindings.Bindings;
 import com.rinf.bringx.EasyBindings.Controls;
 import com.rinf.bringx.EasyBindings.ICommand;
 import com.rinf.bringx.EasyBindings.INotifier;
 import com.rinf.bringx.EasyBindings.Bindings.Mode;
 import com.rinf.bringx.R;
+import com.rinf.bringx.ViewModels.MEETING_STATUS;
+import com.rinf.bringx.ViewModels.OrderViewModel;
 import com.rinf.bringx.ViewModels.VM;
 import com.rinf.bringx.service.GPSTracker;
+import com.rinf.bringx.utils.AlertGenerator;
 import com.rinf.bringx.utils.Localization;
+import com.rinf.bringx.utils.Log;
 
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
+
+class ExpandableControl {
+    private TextView _control;
+    private int _defaultLines;
+    private int _expandedLines;
+
+    public ExpandableControl(View control, int defaultLines, int expandedLines) {
+        _control = (TextView) control;
+        _defaultLines = defaultLines;
+        _expandedLines = expandedLines;
+    }
+
+    public void ToggleExpand() {
+        if (_control.getMaxLines() == _defaultLines)
+            _control.setMaxLines(_expandedLines);
+        else
+            _control.setMaxLines(_defaultLines);
+    }
+
+    public void ResetExpand() {
+        _control.setMaxLines(_defaultLines);
+    }
+
+    public TextView Control() {
+        return _control;
+    }
+}
 
 public class LoginActivity extends ActionBarActivity {
 
@@ -30,6 +69,8 @@ public class LoginActivity extends ActionBarActivity {
 
     private Localization localization;
     private ProgressDialog loginProgressDialog;
+
+    private List<ExpandableControl> _expandableControls = new ArrayList<ExpandableControl>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,14 +88,16 @@ public class LoginActivity extends ActionBarActivity {
         new VM();
 
         Bindings.BindVisible(Controls.get(R.id.layout_login), VM.LoginViewModel.IsLoggedIn, Mode.Invert);
-        Bindings.BindVisible(Controls.get(R.id.layout_meetings), VM.LoginViewModel.IsLoggedIn);
+        Bindings.BindVisible(Controls.get(R.id.layout_meetings), VM.MeetingsViewModel.CanDisplayMeetings);
         Bindings.BindChanged(VM.LoginViewModel.IsLoggedIn, new INotifier<Boolean>() {
             @Override
             public void OnValueChanged(Boolean value) {
                 invalidateOptionsMenu();
 
-                if (value == false)
+                if (value == false) {
+                    Controls.get(R.id.lbl_no_more_jobs).setVisibility(View.GONE);
                     return;
+                }
 
                 onSuccessfulLogin();
             }
@@ -97,6 +140,120 @@ public class LoginActivity extends ActionBarActivity {
                 VM.LoginViewModel.DoLogin();
             }
         }, this);
+
+        Bindings.BindChanged(VM.MeetingsViewModel.IsRetrievingData, new INotifier<Boolean>() {
+            @Override
+            public void OnValueChanged(Boolean value) {
+                if (value == true) {
+                    loginProgressDialog = new ProgressDialog(LoginActivity.this);
+                    loginProgressDialog.setMessage(getString(R.string.msg_alert_getting_jobs));
+                    loginProgressDialog.setCancelable(false);
+                    loginProgressDialog.show();
+                }
+                else {
+                    if (loginProgressDialog != null)
+                        loginProgressDialog.dismiss();
+                }
+            }
+        });
+
+        createBindingsForMeetingsList();
+    }
+
+    private void createBindingsForMeetingsList() {
+        Bindings.BindText(Controls.get(R.id.value_meeting_eta), VM.MeetingsViewModel.CurrentMeeting.ETA);
+        Bindings.BindText(Controls.get(R.id.value_meeting_destination), VM.MeetingsViewModel.CurrentMeeting.Name);
+        Bindings.BindText(Controls.get(R.id.value_meeting_address), VM.MeetingsViewModel.CurrentMeeting.Address);
+        Bindings.BindText(Controls.get(R.id.value_meeting_details), VM.MeetingsViewModel.CurrentMeeting.Details);
+        Bindings.BindText(Controls.get(R.id.value_meeting_info), VM.MeetingsViewModel.CurrentMeeting.Instructions);
+        Bindings.BindText(Controls.get(R.id.value_meeting_notes), VM.MeetingsViewModel.CurrentMeeting.Notes);
+
+        // Click on Name - call Phone number
+        Bindings.BindCommand(Controls.get(R.id.value_meeting_destination), new ICommand<OrderViewModel>() {
+            @Override
+            public void Execute(OrderViewModel context) {
+                if (context.CurrentDestination().Phone().isEmpty()) {
+                    Toast.makeText(LoginActivity.this, getString(R.string.no_phone_details), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                String uri = "tel:" + context.CurrentDestination().Phone();
+                Intent intent = new Intent(Intent.ACTION_CALL);
+                intent.setData(Uri.parse(uri));
+                startActivity(intent);
+            }
+        }, VM.MeetingsViewModel.CurrentMeeting);
+
+        ICommand<OrderViewModel> onClickAddressName = new ICommand<OrderViewModel>() {
+            @Override
+            public void Execute(OrderViewModel context) {
+                Intent intent = null;
+                String location = "";
+
+                if (context.CurrentDestination().HasCoordinates()) {
+                    intent = new Intent(Intent.ACTION_VIEW, Uri.parse(String.format("geo:%s,%s", context.CurrentDestination().Latitude(),
+                            context.CurrentDestination().Longitude())));
+                } else {
+                    intent = new Intent(Intent.ACTION_VIEW, Uri.parse(String.format("geo:0,0?q=%s", URLEncoder.encode(context.Address.get()))));
+                }
+
+                startActivity(intent);
+            }
+        };
+
+        Bindings.BindCommand(Controls.get(R.id.value_meeting_address), onClickAddressName, VM.MeetingsViewModel.CurrentMeeting);
+
+        _expandableControls.add(new ExpandableControl(Controls.get(R.id.value_meeting_details), 1, 4));
+        _expandableControls.add(new ExpandableControl(Controls.get(R.id.value_meeting_info), 4, 50));
+        _expandableControls.add(new ExpandableControl(Controls.get(R.id.value_meeting_pay), 1, 4));
+
+        for (ExpandableControl exp : _expandableControls) {
+            Bindings.BindCommand(exp.Control(), new ICommand<ExpandableControl>() {
+                @Override
+                public void Execute(ExpandableControl context) {
+                    context.ToggleExpand();
+                }
+            }, exp);
+        }
+
+        Bindings.BindText(Controls.get(R.id.btn_order_status), VM.MeetingsViewModel.StatusButton);
+        Bindings.BindCommand(Controls.get(R.id.btn_order_status), new ICommand<Object>() {
+            @Override
+            public void Execute(Object context) {
+                VM.MeetingsViewModel.CurrentMeeting.AdvanceOrderStatus();
+
+                for (ExpandableControl exp : _expandableControls) {
+                    exp.ResetExpand();
+                }
+            }
+        }, null);
+
+        VM.MeetingsViewModel.OnNoMoreJobs.addObserver(new INotifier<Boolean>() {
+            @Override
+            public void OnValueChanged(Boolean value) {
+                if (value == false)
+                    return;
+
+                Controls.get(R.id.layout_meetings).setVisibility(View.GONE);
+                Controls.get(R.id.lbl_no_more_jobs).setVisibility(View.VISIBLE);
+                invalidateOptionsMenu();
+
+                AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_no_jobs_msg_title, R.string.msg_alert_no_jobs_msg, null);
+            }
+        });
+
+        // Next
+        Bindings.BindVisible(Controls.get(R.id.layout_row_next), VM.MeetingsViewModel.CurrentMeeting.IsDrivingMode);
+        Bindings.BindText(Controls.get(R.id.value_meeting_next), VM.MeetingsViewModel.NextMeeting.Name);
+        Bindings.BindCommand(Controls.get(R.id.value_meeting_next), onClickAddressName, VM.MeetingsViewModel.NextMeeting);
+
+        // From/To
+        Bindings.BindVisible(Controls.get(R.id.layout_row_fromto), VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode);
+        Bindings.BindText(Controls.get(R.id.value_meeting_fromTo), VM.MeetingsViewModel.CurrentMeeting.FromTo);
+
+        // Pay
+        Bindings.BindVisible(Controls.get(R.id.layout_row_pay), VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode);
+        Bindings.BindText(Controls.get(R.id.value_meeting_pay), VM.MeetingsViewModel.CurrentMeeting.Pay);
     }
 
     @Override
@@ -138,19 +295,14 @@ public class LoginActivity extends ActionBarActivity {
         if (!tracker.IsGPSEnabled() && !tracker.IsNetworkEnabled()) {
             showSettingsAlert();
         }
-
-        Bindings.BindText(Controls.get(R.id.value_meeting_eta), VM.MeetingsViewModel.CurrentMeeting.ETA);
-        Bindings.BindText(Controls.get(R.id.value_meeting_destination), VM.MeetingsViewModel.CurrentMeeting.Name);
-        Bindings.BindText(Controls.get(R.id.value_meeting_info), VM.MeetingsViewModel.CurrentMeeting.Instructions);
-        Bindings.BindText(Controls.get(R.id.value_meeting_notes), VM.MeetingsViewModel.CurrentMeeting.Notes);
     }
 
     @Override
-    public boolean onPrepareOptionsMenu (Menu menu) {
+    public boolean onPrepareOptionsMenu(Menu menu) {
         boolean visible = VM.LoginViewModel.IsLoggedIn.get();
 
-        menu.findItem(R.id.action_rejected_customer).setVisible(visible);
-        menu.findItem(R.id.action_not_possible_driver).setVisible(visible);
+        menu.findItem(R.id.action_rejected_customer).setVisible(visible && (VM.MeetingsViewModel.OnNoMoreJobs.get() == false));
+        menu.findItem(R.id.action_not_possible_driver).setVisible(visible && (VM.MeetingsViewModel.OnNoMoreJobs.get() == false));
         menu.findItem(R.id.action_logout).setVisible(visible);
 
         return true;
@@ -203,8 +355,7 @@ public class LoginActivity extends ActionBarActivity {
                 showOKCancelDialog(R.string.msg_rejected_customer, new Callable() {
                     @Override
                     public Object call() throws Exception {
-                        //TODO
-
+                        VM.MeetingsViewModel.CurrentMeeting.SetStatus(MEETING_STATUS.REJECTED_CUSTOMER);
                         return null;
                     }
                 });
@@ -215,8 +366,7 @@ public class LoginActivity extends ActionBarActivity {
                 showOKCancelDialog(R.string.msg_rejected_customer, new Callable() {
                     @Override
                     public Object call() throws Exception {
-                        //TODO
-
+                        VM.MeetingsViewModel.CurrentMeeting.SetStatus(MEETING_STATUS.REJECTED_DRIVER);
                         return null;
                     }
                 });
@@ -228,27 +378,6 @@ public class LoginActivity extends ActionBarActivity {
     }
 
     private void showOKCancelDialog(int msgId, final Callable onOk) {
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this)
-                .setTitle(localization.getText(R.string.msg_alert_confirmation_title))
-                .setMessage(localization.getText(msgId))
-
-                .setPositiveButton(localization.getText(R.string.btn_ok),
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                try {
-                                    onOk.call();
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        })
-                .setNegativeButton(localization.getText(R.string.btn_cancel),
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.cancel();
-                            }
-                        });
-
-        alertDialog.show();
+        AlertGenerator.ShowOkCancelAlert(this, R.string.msg_alert_confirmation_title, msgId, onOk, null);
     }
 }

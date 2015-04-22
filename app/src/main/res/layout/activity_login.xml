@@ -81,135 +81,172 @@
             android:text="@string/lbl_login_button" />
     </RelativeLayout>
 
-    <GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <LinearLayout
         android:id="@+id/layout_meetings"
         android:layout_width="match_parent"
-        android:layout_height="fill_parent"
-        android:columnCount="12">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <View
-            android:layout_width="5dp"
-            android:layout_column="2"
-            android:layout_row="0"
-            android:layout_rowSpan="5"
-            android:layout_marginLeft="-10.5dp"
-            android:background="@drawable/cell_rectangle" />
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_weight="1"
+            android:layout_height="0dp">
 
-        <!-- ETA -->
-        <TextView
-            style="@style/TableLabel_Meetings"
-            android:layout_column="0"
-            android:layout_row="0"
-            android:text="@string/str_meeting_eta" />
+            <TableLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-        <View
-            android:layout_width="15dp"
-            android:layout_height="15dp"
-            android:layout_marginTop="3dp"
-            android:layout_column="1"
-            android:layout_row="0"
-            android:layout_gravity="top"
-            android:background="@drawable/cell_round" />
+                <TableRow style="@style/TableRow_Meetings">
+                    <!-- ETA -->
+                    <TextView
+                        style="@style/TableLabel_Meetings"
+                        android:text="@string/str_meeting_eta" />
 
-        <TextView
-            android:id="@+id/value_meeting_eta"
-            style="@style/TableValue_Meetings"
-            android:layout_column="3"
-            android:layout_row="0"
-            android:text="adsfffffffffffffffffffffffffffdmmmmmmfffffsaas"/>
+                    <View style="@style/Table_CellRound" />
 
-        <!-- Destination -->
-        <TextView
-            style="@style/TableLabel_Meetings"
-            android:layout_column="0"
-            android:layout_row="1"
-            android:text="@string/str_meeting_destination" />
+                    <TextView
+                        android:id="@+id/value_meeting_eta"
+                        style="@style/TableValue_Meetings"
+                        android:text="adsfffffffffffffffffffffffffffdmmmmmmfffffsaas" />
+                </TableRow>
 
-        <View
-            android:layout_width="15dp"
-            android:layout_height="15dp"
-            android:layout_marginTop="3dp"
-            android:layout_column="1"
-            android:layout_row="1"
-            android:layout_gravity="top"
-            android:background="@drawable/cell_round" />
+                <TableRow style="@style/TableRow_Meetings">
+                    <!-- Destination name -->
+                    <TextView
+                        style="@style/TableLabel_Meetings"
+                        android:text="@string/str_meeting_destination" />
 
-        <TextView
-            android:id="@+id/value_meeting_destination"
-            style="@style/TableValue_Meetings"
-            android:layout_column="3"
-            android:layout_row="1" />
+                    <View style="@style/Table_CellRound" />
 
-        <!-- Details -->
+                    <TextView
+                        android:id="@+id/value_meeting_destination"
+                        style="@style/TableValue_Meetings" />
+                </TableRow>
 
-        <TextView
-            style="@style/TableLabel_Meetings"
-            android:layout_column="0"
-            android:layout_row="2"
-            android:text="@string/str_meeting_details" />
+                <TableRow style="@style/TableRow_Meetings">
+                    <!-- Address -->
+                    <TextView style="@style/TableLabel_Meetings" />
 
-        <View
-            android:layout_width="15dp"
-            android:layout_height="15dp"
-            android:layout_marginTop="3dp"
-            android:layout_column="1"
-            android:layout_row="2"
-            android:layout_gravity="top"
-            android:background="@drawable/cell_round" />
+                    <View style="@style/Table_CellRound" />
 
-        <TextView
-            android:id="@+id/value_meeting_details"
-            style="@style/TableValue_Meetings"
-            android:layout_column="3"
-            android:layout_row="2" />
+                    <TextView
+                        android:id="@+id/value_meeting_address"
+                        style="@style/TableValue_Meetings" />
+                </TableRow>
 
-        <!-- Info -->
+                <TableRow style="@style/TableRow_Meetings">
+                    <!-- Details -->
 
-        <TextView
-            style="@style/TableLabel_Meetings"
-            android:layout_column="0"
-            android:layout_row="3"
-            android:text="@string/str_meeting_info" />
+                    <TextView
+                        style="@style/TableLabel_Meetings"
 
-        <View
-            android:layout_width="15dp"
-            android:layout_height="15dp"
-            android:layout_marginTop="3dp"
-            android:layout_column="1"
-            android:layout_row="3"
-            android:layout_gravity="top"
-            android:background="@drawable/cell_round" />
+                        android:text="@string/str_meeting_details" />
 
-        <TextView
-            android:id="@+id/value_meeting_info"
-            style="@style/TableValue_Meetings"
-            android:layout_column="3"
-            android:layout_row="3" />
+                    <View style="@style/Table_CellRound" />
 
-        <!-- Notes -->
+                    <TextView
+                        android:id="@+id/value_meeting_details"
+                        style="@style/TableValue_Meetings"
+                        android:maxLines="1" />
+                </TableRow>
 
-        <TextView
-            style="@style/TableLabel_Meetings"
-            android:layout_column="0"
-            android:layout_row="4"
-            android:text="@string/str_meeting_notes" />
+                <TableRow style="@style/TableRow_Meetings">
+                    <!-- Info -->
 
-        <View
-            android:layout_width="15dp"
-            android:layout_height="15dp"
-            android:layout_marginTop="3dp"
-            android:layout_column="1"
-            android:layout_row="4"
-            android:layout_gravity="top"
-            android:background="@drawable/cell_round" />
+                    <TextView
+                        style="@style/TableLabel_Meetings"
 
-        <TextView
-            android:id="@+id/value_meeting_notes"
-            style="@style/TableValue_Meetings"
-            android:layout_column="3"
-            android:layout_row="4" />
+                        android:text="@string/str_meeting_info" />
 
+                    <View style="@style/Table_CellRound" />
 
+                    <TextView
+                        android:id="@+id/value_meeting_info"
+                        style="@style/TableValue_Meetings"
+                        android:maxLines="4" />
+                </TableRow>
 
-    </GridLayout>
+                <TableRow style="@style/TableRow_Meetings">
+                    <!-- Notes -->
+
+                    <TextView
+                        style="@style/TableLabel_Meetings"
+                        android:text="@string/str_meeting_notes" />
+
+                    <View style="@style/Table_CellRound" />
+
+                    <TextView
+                        android:id="@+id/value_meeting_notes"
+                        style="@style/TableValue_Meetings" />
+                </TableRow>
+
+                <TableRow
+                    android:id="@+id/layout_row_next"
+                    style="@style/TableRow_Meetings">
+                    <!-- Next -->
+
+                    <TextView
+                        style="@style/TableLabel_Meetings"
+                        android:text="@string/str_meeting_next" />
+
+                    <View style="@style/Table_CellRound" />
+
+                    <TextView
+                        android:id="@+id/value_meeting_next"
+                        style="@style/TableValue_Meetings" />
+                </TableRow>
+
+                <TableRow
+                    android:id="@+id/layout_row_fromto"
+                    style="@style/TableRow_Meetings">
+                    <!-- From/To -->
+
+                    <TextView
+                        style="@style/TableLabel_Meetings"
+                        android:text="@string/str_meeting_fromto" />
+
+                    <View style="@style/Table_CellRound" />
+
+                    <TextView
+                        android:id="@+id/value_meeting_fromTo"
+                        style="@style/TableValue_Meetings" />
+                </TableRow>
+
+                <TableRow
+                    android:id="@+id/layout_row_pay"
+                    style="@style/TableRow_Meetings">
+                    <!-- Pay -->
+                    <TextView
+                        style="@style/TableLabel_Meetings"
+                        android:text="@string/str_meeting_pay" />
+
+                    <View style="@style/Table_CellRound" />
+
+                    <TextView
+                        android:id="@+id/value_meeting_pay"
+                        style="@style/TableValue_Meetings"
+                        android:maxLines="1" />
+                </TableRow>
+
+            </TableLayout>
+        </ScrollView>
+
+        <Button
+            android:id="@+id/btn_order_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/lbl_btn_arrived" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/lbl_no_more_jobs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_centerInParent="true"
+        android:textStyle="bold"
+        android:textSize="32sp"
+        android:text="No jobs in queue"/>
+
 </RelativeLayout>

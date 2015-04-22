@@ -19,7 +19,10 @@ public class Order {
                 throw new JSONException("No Id or Version found");
 
             PriceGoods();
-            PriceDelivery();
+            if (PriceDelivery() == null) {
+                throw new JSONException("Price of delivery not found");
+            }
+
             PriceComment();
 
             if (NumberGoods() == null)
@@ -28,7 +31,8 @@ public class Order {
             if (PickupAddress() == null || DeliveryAddress() == null)
                 throw new JSONException("Pickup or Delivery not found");
 
-            Cargo();
+            if (Cargo() == null)
+                throw new JSONException("Cargo not found");
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -64,12 +68,17 @@ public class Order {
         }
     }
 
-    public double PriceGoods() {
+    public Double PriceGoods() {
         return _jsonObj.optDouble("Price_goods");
     }
 
-    public double PriceDelivery() throws JSONException {
-        return _jsonObj.getDouble("Price_delivery");
+    public Double PriceDelivery() {
+        try {
+            return _jsonObj.getDouble("Price_delivery");
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public String PriceComment() {
@@ -118,16 +127,23 @@ public class Order {
         return _deliveryAddress;
     }
 
-    public List<Cargo> Cargo() throws JSONException {
+    public List<Cargo> Cargo() {
         if (_cargo != null)
             return _cargo;
 
-        JSONArray cargo = _jsonObj.getJSONArray("Cargo");
-        for (int i = 0; i < cargo.length(); i++) {
-            if (_cargo == null)
-                _cargo = new ArrayList<Cargo>();
+        JSONArray cargo = null;
 
-            _cargo.add(new Cargo(cargo.getJSONObject(i)));
+        try {
+            cargo = _jsonObj.getJSONArray("Cargo");
+
+            for (int i = 0; i < cargo.length(); i++) {
+                if (_cargo == null)
+                    _cargo = new ArrayList<Cargo>();
+
+                _cargo.add(new Cargo(cargo.getJSONObject(i)));
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
 
         return _cargo;

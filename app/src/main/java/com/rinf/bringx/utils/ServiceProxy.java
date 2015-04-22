@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import com.rinf.bringx.App;
 import com.rinf.bringx.Model.Meeting;
 import com.rinf.bringx.Model.Order;
+import com.rinf.bringx.ViewModels.MEETING_STATUS;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,6 +44,11 @@ public class ServiceProxy {
     public void GetOrdersList(String userName, List<Meeting> meetingsList) {
         OrdersListTask ordersListTask = new OrdersListTask(_statusHandler);
         ordersListTask.execute(userName, meetingsList);
+    }
+
+    public void SetMeetingStatus(String userName, String orderId, MEETING_STATUS status) {
+        MeetingStatusTask meetingStatusTask = new MeetingStatusTask(null);
+        meetingStatusTask.execute(userName, orderId, status);
     }
 }
 
@@ -158,7 +164,100 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
 
         // Make request to retrieve orders
         List<Order> newOrders = new ArrayList<Order>();
-        String response = "[{\n  \"OrderUID\": \"1015-01\",\n\"Price_goods\": 12.34, \n\"Price_delivery\": 3.98,\n\"Price_comment\": \"paid by credit card\",\n\"number_goods\": 5,   \n\n\"Pickup-Address\": {\n\t\"Name\": \"Gaststätte Wohnzimmer\",\n\t\"Company\": \"\", \n\t\"Street\": \"Schloßstr. 77b\", \n\t\"ZIP\": \"70176\",\n\t\"Instructions\": \"Please call when arriving, the bell is broken\",\n\t\"Notes\": \"Cheeseburger without Tomatoes please\",\n\t\"Phone\": \"+49 175 5234632\",\n\t\"Mail\": \"\"\n},\n\n\"Delivery-Address\": {\n\t\"Name\": \"Matthias Brunner\",\n\t\"Company\": \"Logistics Start-up\",\n\t\"Street\": \"Böblinger Str. 43\",\n\t\"ZIP\": \"70196\",\n\t\"Instructions\": \"\",\t\n\t\"Notes\":\"\",\n\t\"Phone\": \"0176 8046 8925\",\n\t\"Mail\": \"mbrunner@bringx.com\",\n\t\"Coordinates\": \"42.94321, 9.813242\"\n},\n\n\"Cargo\": \n[\n\t{\n\t\"count\": 6,\n\t\"price\": 5.35,\n\t\"title\": \"Beck beer\",\n\t\"size\":  \"\",\n\t\"weight\": \"\", \n\t\"info\": \"\"\n\t},\n\t{\t\n\t\"count\": 1,\n\t\"price\": 12.56,\n\t\"title\": \"spare ribs with french fries\"\n\t}\t\n]\n}\n]";
+        String response = "[\n" +
+                "{\"OrderUID\": \"1015-01\",\n" +
+                "\"Price_goods\": 12.34, \n" +
+                "\"Price_delivery\": 3.98,\n" +
+                "\"Price_comment\": \"paid by credit card\", \n" +
+                "\"number_goods\": 5,\n" +
+                "\n" +
+                "\"Pickup-Address\": {\n" +
+                "\t\"Name\": \"Gaststätte Wohnzimmer\",\n" +
+                "\t\"Company\": \"\", \n" +
+                "\t\"Street\": \"Schloßstr. 77b\", \n" +
+                "\t\"ZIP\": \"70176\",\n" +
+                "\t\"Instructions\": \"Please call when arriving, the bell is broken\",\n" +
+                "\t\"Notes\": \"Cheeseburger without Tomatoes please\",\n" +
+                "\t\"Phone\": \"+49 175 5234632\",\n" +
+                "\t\"Mail\": \"\"\n" +
+                "},\n" +
+                "\n" +
+                "\"Delivery-Address\": {\n" +
+                "\t\"Name\": \"Matthias Brunner\",\n" +
+                "\t\"Company\": \"Logistics Start-up\",\n" +
+                "\t\"Street\": \"Böblinger Str. 43\",\n" +
+                "\t\"ZIP\": \"70196\",\n" +
+                "\t\"Instructions\": \"\"\t,\n" +
+                "\t\"Notes\":\"\",\n" +
+                "\t\"Phone\": \"0176 8046 8925\",\n" +
+                "\t\"Mail\": \"mbrunner@bringx.com\",\n" +
+                "\t\"Coordinates\": \"42.94321, 9.813242\"\n" +
+                "},\n" +
+                "\n" +
+                "\"Cargo\": \n" +
+                "[\n" +
+                "\t{\n" +
+                "\t\"count\": 6,\n" +
+                "\t\"price\": 5.35,\n" +
+                "\t\"title\": \"Beck beer\",\t\n" +
+                "\t\"size\":  \"\",\n" +
+                "\t\"weight\": \"\", \n" +
+                "\t\"info\": \"\"\n" +
+                "\t},\n" +
+                "\t{\t\n" +
+                "\t\"count\": 1,\n" +
+                "\t\"price\": 12.56,\n" +
+                "\t\"title\": \"spare ribs with french fries\"\n" +
+                "\t}\t\n" +
+                "]\n" +
+                "},\n" +
+                "{\"OrderUID\": \"1014-01\",\n" +
+                "\"Price_goods\": 12.34, \n" +
+                "\"Price_delivery\": 3.98,\n" +
+                "\"Price_comment\": \"paid by credit card\",\n" +
+                "\"number_goods\": 5,   \n" +
+                "\n" +
+                "\"Pickup-Address\": {\n" +
+                "\t\"Name\": \"Gaststätte Wohnzimmer\",\n" +
+                "\t\"Company\": \"\", \n" +
+                "\t\"Street\": \"Schloßstr. 77b\", \n" +
+                "\t\"ZIP\": \"70176\",\n" +
+                "\t\"Instructions\": \"Please call when arriving, the bell is broken\",\n" +
+                "\t\"Notes\": \"Cheeseburger without Tomatoes please\",\n" +
+                "\t\"Phone\": \"+49 175 5234632\",\n" +
+                "\t\"Mail\": \"\"\n" +
+                "},\n" +
+                "\n" +
+                "\"Delivery-Address\": {\n" +
+                "\t\"Name\": \"Matthias Brunner\",\n" +
+                "\t\"Company\": \"Logistics Start-up\",\n" +
+                "\t\"Street\": \"Böblinger Str. 43\",\n" +
+                "\t\"ZIP\": \"70196\",\n" +
+                "\t\"Instructions\": \"\",\n" +
+                "\t\"Notes\":\"\",\n" +
+                "\t\"Phone\": \"0176 8046 8925\",\n" +
+                "\t\"Mail\": \"mbrunner@bringx.com\",\n" +
+                "\t\"Coordinates\": \"42.94321, 9.813242\"\n" +
+                "},\n" +
+                "\n" +
+                "\"Cargo\": \n" +
+                "[\n" +
+                "\t{\n" +
+                "\t\"count\": 6,\n" +
+                "\t\"price\": 5.35,\n" +
+                "\t\"title\": \"Beck beer\"\t,\n" +
+                "\t\"size\":  \"\",\n" +
+                "\t\"weight\": \"\", \n" +
+                "\t\"info\": \"\"\n" +
+                "\t},\n" +
+                "\t{\t\n" +
+                "\t\"count\": 1,\n" +
+                "\t\"price\": 12.56,\n" +
+                "\t\"title\": \"spare ribs with french fries\"\n" +
+                "\t}\t\n" +
+                "]\n" +
+                "}]\n" +
+                "\n";
         try {
             JSONArray resp = new JSONArray(response);
             for (int i = 0; i < resp.length(); i++) {
@@ -223,7 +322,7 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
             String meetingsListPayload = App.Requester().POST(URLS.JobsURL, jsonParams);
             Thread.sleep(2000, 0);
 
-            meetingsListPayload = "1015-10,1429172461,1429172561,1014-11,,1429172461";
+            meetingsListPayload = "1015-01,1429172461,1429172471,1014-01,,1429172961";
 
             String[] tokens = meetingsListPayload.split(",");
 
@@ -275,6 +374,60 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
         }
     }
 }
+
+
+class MeetingStatusTask extends AsyncTaskReport<Object, Void, Boolean> {
+
+    public MeetingStatusTask(IStatusHandler statusHandler) {
+        super(statusHandler);
+    }
+
+    @Override
+    protected void onPreExecute() {
+        super.onPreExecute();
+    }
+
+    @Override
+    protected Boolean doInBackground(Object... params) {
+        if (params.length != 3) {
+            return false;
+        }
+
+        JSONObject jsonObj = null;
+
+        Log.d("Performing status update to " + params[2] + " for order: " + params[1] + " on device: " + App.DeviceManager().DeviceId());
+
+        try {
+            JSONObject jsonParams = new JSONObject();
+            jsonObj = new JSONObject(App.Requester().POST(URLS.StatusURL, jsonParams));
+
+            Thread.sleep(2000, 0);
+            return true;
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
+    protected void onPostExecute(Boolean jsonObj) {
+        if (jsonObj == null) {
+            ReportError(500, "Server error");
+            return;
+        }
+
+        if (jsonObj == true) {
+            ReportSuccess(true);
+        } else {
+            ReportError(1, "Invalid login credentials");
+        }
+    }
+}
+
 
 class DataUtils {
     public static final String md5(final String s) {

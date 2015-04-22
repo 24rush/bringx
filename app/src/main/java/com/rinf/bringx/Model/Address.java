@@ -15,8 +15,8 @@ public class Address {
     private String _mail;
     private String _status;
 
-    private Double _latitude;
-    private Double _longitude;
+    private Double _latitude = -1.;
+    private Double _longitude = -1.;
 
     private JSONObject _jsonObj;
 
@@ -86,6 +86,10 @@ public class Address {
 
     public Double Longitude() {
         return _longitude;
+    }
+
+    public boolean HasCoordinates() {
+        return _latitude != -1. && _longitude != -1.;
     }
 
     public String Status() {
