@@ -2,8 +2,13 @@ package com.rinf.bringx.Views;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.provider.Settings;
 import android.support.v7.app.ActionBar;
@@ -21,14 +26,14 @@ import com.rinf.bringx.EasyBindings.Controls;
 import com.rinf.bringx.EasyBindings.ICommand;
 import com.rinf.bringx.EasyBindings.INotifier;
 import com.rinf.bringx.EasyBindings.Bindings.Mode;
+import com.rinf.bringx.EasyBindings.Observable;
 import com.rinf.bringx.R;
 import com.rinf.bringx.ViewModels.MEETING_STATUS;
 import com.rinf.bringx.ViewModels.OrderViewModel;
 import com.rinf.bringx.ViewModels.VM;
 import com.rinf.bringx.service.GPSTracker;
-import com.rinf.bringx.utils.AlertGenerator;
-import com.rinf.bringx.utils.Localization;
-import com.rinf.bringx.utils.Log;
+import com.rinf.bringx.storage.SettingsStorage;
+import com.rinf.bringx.utils.*;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -72,8 +77,19 @@ public class LoginActivity extends ActionBarActivity {
 
     private List<ExpandableControl> _expandableControls = new ArrayList<ExpandableControl>();
 
+    private Observable<Boolean> IsConnectedInternet = new Observable<Boolean>(true);
+
+    private BroadcastReceiver mConnReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            VM.MeetingsViewModel.OnInternetConnectionChanged();
+
+            IsConnectedInternet.set(App.DeviceManager().IsNetworkAvailable());
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d("onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
@@ -85,7 +101,20 @@ public class LoginActivity extends ActionBarActivity {
         actionBar.setDisplayShowHomeEnabled(false);
 
         localization = new Localization(this);
+
+        if (App.DeviceManager().IsNetworkAvailable() == false) {
+            AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_information_title, R.string.msg_alert_no_internet_connection, null);
+            IsConnectedInternet.set(false);
+        }
+
+        onInternetConnectionEstablished();
+    }
+
+    private void onInternetConnectionEstablished() {
         new VM();
+
+        Bindings.BindVisible(Controls.get(R.id.imageInternet), IsConnectedInternet);
+        Bindings.BindVisible(Controls.get(R.id.imageNoInternet), IsConnectedInternet, Mode.Invert);
 
         Bindings.BindVisible(Controls.get(R.id.layout_login), VM.LoginViewModel.IsLoggedIn, Mode.Invert);
         Bindings.BindVisible(Controls.get(R.id.layout_meetings), VM.MeetingsViewModel.CanDisplayMeetings);
@@ -149,8 +178,7 @@ public class LoginActivity extends ActionBarActivity {
                     loginProgressDialog.setMessage(getString(R.string.msg_alert_getting_jobs));
                     loginProgressDialog.setCancelable(false);
                     loginProgressDialog.show();
-                }
-                else {
+                } else {
                     if (loginProgressDialog != null)
                         loginProgressDialog.dismiss();
                 }
@@ -238,7 +266,7 @@ public class LoginActivity extends ActionBarActivity {
                 Controls.get(R.id.lbl_no_more_jobs).setVisibility(View.VISIBLE);
                 invalidateOptionsMenu();
 
-                AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_no_jobs_msg_title, R.string.msg_alert_no_jobs_msg, null);
+                AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_information_title, R.string.msg_alert_no_jobs_msg, null);
             }
         });
 
@@ -259,9 +287,21 @@ public class LoginActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d("onResume");
 
-        // Start the GPS service even if the providers are OFF and also when app is brought to foreground
-        startService(new Intent(this, GPSTracker.class));
+        if (VM.LoginViewModel.IsLoggedIn.get() == true) {
+            // Start the GPS service even if the providers are OFF and also when app is brought to foreground
+            startService(new Intent(this, GPSTracker.class));
+        }
+
+        registerReceiver(mConnReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        unregisterReceiver(mConnReceiver);
     }
 
     public void showSettingsAlert() {
@@ -299,7 +339,7 @@ public class LoginActivity extends ActionBarActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        boolean visible = VM.LoginViewModel.IsLoggedIn.get();
+        boolean visible = VM.LoginViewModel != null && VM.LoginViewModel.IsLoggedIn.get();
 
         menu.findItem(R.id.action_rejected_customer).setVisible(visible && (VM.MeetingsViewModel.OnNoMoreJobs.get() == false));
         menu.findItem(R.id.action_not_possible_driver).setVisible(visible && (VM.MeetingsViewModel.OnNoMoreJobs.get() == false));

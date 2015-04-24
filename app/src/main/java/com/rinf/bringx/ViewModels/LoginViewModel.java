@@ -1,6 +1,7 @@
 package com.rinf.bringx.ViewModels;
 
 import com.rinf.bringx.App;
+import com.rinf.bringx.EasyBindings.INotifier;
 import com.rinf.bringx.EasyBindings.Observable;
 import com.rinf.bringx.Views.LoginActivity;
 import com.rinf.bringx.utils.Error;
@@ -24,6 +25,14 @@ public class LoginViewModel {
     private final String KEY_LOGIN_PASSWORD = "password";
 
     public LoginViewModel() {
+        UserName.addObserver(new INotifier<String>() {
+            @Override
+            public void OnValueChanged(String value) {
+                if (!value.isEmpty())
+                    App.StorageManager().SetCurrentUser(value);
+            }
+        });
+
         UserName.set(App.StorageManager().Credentials().getString(KEY_LOGIN_USER_NAME));
         Password.set(App.StorageManager().Credentials().getString(KEY_LOGIN_PASSWORD));
 
@@ -38,9 +47,9 @@ public class LoginViewModel {
         IsLoggingIn.set(true);
         IsLoggedIn.set(false);
 
-        IStatusHandler statusHandler = new IStatusHandler<JSONObject>() {
+        IStatusHandler statusHandler = new IStatusHandler<JSONObject, String>() {
             @Override
-            public void OnError(Error err) {
+            public void OnError(Error err, String... params) {
                 IsLoggingIn.set(false);
                 Error = err.Message;
                 IsError.set(true);
@@ -52,7 +61,7 @@ public class LoginViewModel {
             }
 
             @Override
-            public void OnSuccess(JSONObject response) {
+            public void OnSuccess(JSONObject response, String... params) {
                 IsLoggingIn.set(false);
                 Error = "";
                 IsError.set(false);

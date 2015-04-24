@@ -13,7 +13,7 @@
     <string name="msg_alert_confirmation_title">Confirmation</string>
     <string name="msg_alert_login_error">Login failed</string>
     <string name="msg_alert_no_jobs_msg">There are no more jobs in queue</string>
-    <string name="msg_alert_no_jobs_msg_title">Information</string>
+    <string name="msg_alert_information_title">Information</string>
 
     <string name="operator_phone_number">+49 176 8046 8925</string>
     <string name="lbl_login_button">Login</string>
@@ -44,4 +44,5 @@
     <string name="str_meeting_fromto">From/To</string>
     <string name="str_meeting_pay">Pay</string>
     <string name="msg_alert_getting_jobs">Retrieving jobs</string>
+    <string name="msg_alert_no_internet_connection">The application requires an active Internet connection to work. Please check your settings</string>
 </resources>

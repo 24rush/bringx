@@ -6,6 +6,7 @@ import com.rinf.bringx.Model.Cargo;
 import com.rinf.bringx.Model.Order;
 import com.rinf.bringx.utils.StringAppender;
 
+import java.security.InvalidParameterException;
 import java.util.Date;
 import java.util.List;
 
@@ -32,7 +33,14 @@ public class OrderViewModel {
 
     private Address _address;
     private Address _altAddress;
-    public Address CurrentDestination() { return _address;}
+
+    public Address CurrentDestination() {
+        return _address;
+    }
+
+    public Order ModelData() {
+        return _order;
+    }
 
     private List<Cargo> _cargo;
 
@@ -78,7 +86,7 @@ public class OrderViewModel {
 
         ParentOrderId = orderId;
 
-        ETA.set(android.text.format.DateFormat.format("HH:mm - dd.MM.yyyy", eta) + " - " + ParentOrderId);
+        ETA.set(android.text.format.DateFormat.format("hh:mm - dd.MM.yyyy", eta) + " - " + ParentOrderId);
 
         String strAddress = "";
         strAddress = StringAppender.AppendIfFilled(strAddress, _address.Company(), _address.Street(), _address.Zip());
@@ -137,10 +145,41 @@ public class OrderViewModel {
                 break;
         }
 
-        OnStatusChanged.set(currentStatus);
+        SetStatus(currentStatus);
     }
 
     public void SetStatus(MEETING_STATUS status) {
+        String strStatus = mapStatus(status);
+
+        if (strStatus == null)
+            throw new InvalidParameterException("No mapping for status");
+
+        _address.Status(strStatus);
         OnStatusChanged.set(status);
+    }
+
+    public static String mapStatus(MEETING_STATUS status) {
+        switch (status){
+            case DELIVERY_DONE:
+                return "delivery-success";
+            case DELIVERY_DRIVING:
+                return "delivery-driving";
+            case DELIVERY_MEETING:
+                return "delivery-meeting";
+            case LOADED:
+                return "loaded";
+            case PENDING:
+                return "pending";
+            case PICK_DRIVING:
+                return "pick-driving";
+            case PICK_MEETING:
+                return "pick-meeting";
+            case REJECTED_CUSTOMER:
+                return "rejected-customer";
+            case REJECTED_DRIVER:
+                return "rejected-driver";
+            default:
+                return null;
+        }
     }
 }

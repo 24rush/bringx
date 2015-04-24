@@ -20,4 +20,9 @@ public class Meeting {
 
         Log.d("Created meeting with: " + orderId + " " + orderVersion + " " + ETAPickup + " " + ETADelivery);
     }
+
+    @Override
+    public String toString() {
+        return OrderID + "-" + OrderVersion + "," + (ETAPickup == null ? "" : ETAPickup.getTime()) + "," + (ETADelivery == null ? "" : ETADelivery.getTime());
+    }
 }

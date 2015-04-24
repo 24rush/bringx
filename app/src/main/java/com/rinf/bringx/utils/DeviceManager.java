@@ -1,6 +1,8 @@
 package com.rinf.bringx.utils;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 
@@ -22,6 +24,12 @@ public class DeviceManager {
             _deviceId = Settings.Secure.getString(App.Context().getContentResolver(), Settings.Secure.ANDROID_ID);
 
         return _deviceId;
+    }
+
+    public boolean IsNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) App.Context().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     private static String getUniqueID(Context context) {

@@ -9,4 +9,20 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:src="@drawable/ic_logo_wide" />
+
+    <ImageView
+        android:id="@+id/imageInternet"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:padding="10dp"
+        android:src="@mipmap/wifi_white_36" />
+
+    <ImageView
+        android:id="@+id/imageNoInternet"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:padding="10dp"
+        android:visibility="gone"
+        android:src="@mipmap/wifi_disable_36" />
+
 </LinearLayout>

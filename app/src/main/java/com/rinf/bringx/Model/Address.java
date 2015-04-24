@@ -1,6 +1,9 @@
 package com.rinf.bringx.Model;
 
 
+import com.rinf.bringx.App;
+import com.rinf.bringx.utils.Log;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -100,6 +103,7 @@ public class Address {
         _status = status;
 
         try {
+            Log.d("update json to" + status);
             _jsonObj.put("DrpStatus", status);
         } catch (JSONException e) {
             e.printStackTrace();

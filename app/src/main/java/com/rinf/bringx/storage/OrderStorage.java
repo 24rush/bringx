@@ -7,9 +7,13 @@ import org.json.JSONObject;
 
 public class OrderStorage extends StorageManager<Order> {
 
+    public OrderStorage(String user) {
+        super(user);
+    }
+
     @Override
     protected String getStorageKey() {
-        return "com.ring.bringx.STORAGE_ORDERS";
+        return "com.ring.bringx.STORAGE_ORDERS" + "_" + _userName;
     }
 
     @Override
