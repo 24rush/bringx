@@ -9,6 +9,10 @@ public class SettingsStorage extends StorageManager {
     public static String PENDING_STATUSES = "pending-statuses";
     public static String LAST_MEETINGS_ORDER = "meetings-order";
 
+    public static String APP_VERSION = "app-version";
+    public static String REG_ID = "registration-id";
+    public static String FIST_MEETING_CHANGED = "first-meeting-changed";
+
     public SettingsStorage(String user) {
         super(user);
     }

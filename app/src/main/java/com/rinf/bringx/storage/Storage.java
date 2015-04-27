@@ -8,7 +8,7 @@ public class Storage {
     private CredentialsStorage _credentialsStorage;
     private OrderStorage _orderStorage;
     private SettingsStorage _settingsStorage;
-    private String _userName;
+    private String _userName="a";//TODO - remove this
 
     public CredentialsStorage Credentials() {
         if (_credentialsStorage == null) {

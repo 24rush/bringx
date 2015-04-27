@@ -1,18 +1,35 @@
 package com.rinf.bringx.utils;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.rinf.bringx.App;
+import com.rinf.bringx.EasyBindings.Controls;
+import com.rinf.bringx.storage.SettingsStorage;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DeviceManager {
 
+    private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
+    private static final String SENDER_ID = "842130361712";
+
     private String _deviceId = null;
+
+    private GoogleCloudMessaging _gcm;
+    private AtomicInteger _msgId = new AtomicInteger();
 
     public String DeviceId() {
         if (_deviceId != null)
@@ -94,5 +111,86 @@ public class DeviceManager {
         }
 
         return result;
+    }
+
+    private boolean checkPlayServices(Activity activity) {
+        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(App.Context());
+        if (resultCode != ConnectionResult.SUCCESS) {
+            if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
+                GooglePlayServicesUtil.getErrorDialog(resultCode, activity, PLAY_SERVICES_RESOLUTION_REQUEST).show();
+            } else {
+                Log.e("This device is not supported.");
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public void RegisterForPushNotifications(Activity activity) {
+        if (checkPlayServices(activity)) {
+            _gcm = GoogleCloudMessaging.getInstance(App.Context());
+            String regId = getRegistrationId(App.Context());
+
+            if (regId.isEmpty()) {
+                registerInBackground();
+            }
+        }
+    }
+
+    private String getRegistrationId(Context context) {
+        String registrationId = App.StorageManager().Setting().getString(SettingsStorage.REG_ID);
+
+        if (registrationId.isEmpty()) {
+            Log.d("Registration not found.");
+            return "";
+        }
+
+        int registeredVersion = App.StorageManager().Setting().getInt(SettingsStorage.APP_VERSION);
+        int currentVersion = getAppVersion(context);
+
+        if (registeredVersion != currentVersion) {
+            Log.d("App version changed.");
+            return "";
+        }
+
+        return registrationId;
+    }
+
+    private static int getAppVersion(Context context) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+
+            return packageInfo.versionCode;
+
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new RuntimeException("Could not get package name: " + e);
+        }
+    }
+
+    private void registerInBackground() {
+        new AsyncTask<Void, Void, Integer>() {
+            @Override
+            protected Integer doInBackground(Void... params) {
+                try {
+                    if (_gcm == null) {
+                        _gcm = GoogleCloudMessaging.getInstance(App.Context());
+                    }
+
+                    String regId = _gcm.register(SENDER_ID);
+
+                    Log.d("Device registered, registration ID=" + regId);
+
+                    App.StorageManager().Setting().setString(SettingsStorage.REG_ID, regId);
+                    App.StorageManager().Setting().setInt(SettingsStorage.APP_VERSION, getAppVersion(App.Context()));
+
+                } catch (IOException ex) {
+                    Log.e(ex.getMessage());
+                }
+
+                return 0;
+            }
+        }.execute(null, null, null);
     }
 }

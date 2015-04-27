@@ -47,4 +47,18 @@ public class App extends Application {
 
         return _requester;
     }
+
+    public static boolean IsVisible() {
+        return activityVisible;
+    }
+
+    public static void OnActivityResumed() {
+        activityVisible = true;
+    }
+
+    public static void OnActivityPaused() {
+        activityVisible = false;
+    }
+
+    private static boolean activityVisible;
 }

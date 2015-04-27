@@ -33,6 +33,15 @@ public abstract class StorageManager <Type> {
         _editor.commit();
     }
 
+    public void setInt(String key, int value) {
+        _editor.putInt(key, value);
+        _editor.commit();
+    }
+
+    public int getInt(String key) {
+        return _sharedPrefs.getInt(key, Integer.MIN_VALUE);
+    }
+
     public Map<String, Type> getAll() {
         Map<String, Type> typedValue = new HashMap<String, Type>();
         Map<String, ?> keyValues = _sharedPrefs.getAll();
@@ -42,5 +51,12 @@ public abstract class StorageManager <Type> {
         }
 
         return typedValue;
+    }
+
+    public Boolean getBoolean(String key) { return _sharedPrefs.getBoolean(key, false);}
+
+    public void setBoolean(String key, Boolean value) {
+        _editor.putBoolean(key, value);
+        _editor.commit();
     }
 }

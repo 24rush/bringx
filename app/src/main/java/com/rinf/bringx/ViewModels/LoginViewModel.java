@@ -36,7 +36,7 @@ public class LoginViewModel {
         UserName.set(App.StorageManager().Credentials().getString(KEY_LOGIN_USER_NAME));
         Password.set(App.StorageManager().Credentials().getString(KEY_LOGIN_PASSWORD));
 
-        if (!UserName.get().equals("") && !Password.equals("")) {
+        if (!UserName.get().equals("") && !Password.get().equals("")) {
             IsLoggedIn.set(true);
         }
     }

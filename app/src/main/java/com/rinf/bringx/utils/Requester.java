@@ -43,9 +43,8 @@ public class Requester {
     }
 
     public String POST(String url, JSONObject jsonParams) {
-        Log.d("Making POST" + "request to " + url + " with " + jsonParams.toString());
-        return "{}";
-        /*
+        Log.d("Making POST " + "request to " + url + " with " + jsonParams.toString());
+
         String response = null;
 
         DefaultHttpClient httpClient = new DefaultHttpClient();
@@ -58,17 +57,11 @@ public class Requester {
         AbstractHttpEntity entity = getRequestContent(requestParams);
 
         try {
-            if (method == RequestType.POST) {
-                HttpPost httpPost = new HttpPost(url);
-                httpPost.setEntity(entity);
 
-                httpResponse = httpClient.execute(httpPost);
-            } else {
-                HttpGet httpGet = new HttpGet(url);
-                httpResponse = httpClient.execute(httpGet);
-                httpEntity = httpResponse.getEntity();
-                response = EntityUtils.toString(httpEntity);
-            }
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.setEntity(entity);
+
+            httpResponse = httpClient.execute(httpPost);
 
             int statusCode = httpResponse.getStatusLine().getStatusCode();
             Log.e("Response code: " + statusCode);
@@ -76,6 +69,7 @@ public class Requester {
             if (statusCode == 200) {
                 httpEntity = httpResponse.getEntity();
                 response = EntityUtils.toString(httpEntity);
+                Log.d("Request returned: " + response);
             }
 
         } catch (ClientProtocolException e) {
@@ -84,6 +78,42 @@ public class Requester {
             e.printStackTrace();
         }
 
-        return response;*/
+        return response;
+    }
+
+    public String GET(String url, JSONObject jsonParams) {
+        Log.d("Making GET" + "request to " + url + " with " + jsonParams.toString());
+
+        String response = null;
+
+        DefaultHttpClient httpClient = new DefaultHttpClient();
+        HttpConnectionParams.setConnectionTimeout(httpClient.getParams(), 30000);
+
+        HttpEntity httpEntity = null;
+        HttpResponse httpResponse = null;
+
+        String requestParams = jsonParams != null ? jsonParams.toString() : "";
+        AbstractHttpEntity entity = getRequestContent(requestParams);
+
+        try {
+            HttpGet httpGet = new HttpGet(url);
+            httpResponse = httpClient.execute(httpGet);
+            httpEntity = httpResponse.getEntity();
+            response = EntityUtils.toString(httpEntity);
+
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            Log.e("Response code: " + statusCode);
+
+            if (statusCode == 200) {
+                httpEntity = httpResponse.getEntity();
+                response = EntityUtils.toString(httpEntity);
+            }
+        } catch (ClientProtocolException e1) {
+            e1.printStackTrace();
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+
+        return response;
     }
 }

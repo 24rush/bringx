@@ -7,13 +7,16 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,10 +25,10 @@ import android.widget.Toast;
 
 import com.rinf.bringx.App;
 import com.rinf.bringx.EasyBindings.Bindings;
+import com.rinf.bringx.EasyBindings.Bindings.Mode;
 import com.rinf.bringx.EasyBindings.Controls;
 import com.rinf.bringx.EasyBindings.ICommand;
 import com.rinf.bringx.EasyBindings.INotifier;
-import com.rinf.bringx.EasyBindings.Bindings.Mode;
 import com.rinf.bringx.EasyBindings.Observable;
 import com.rinf.bringx.R;
 import com.rinf.bringx.ViewModels.MEETING_STATUS;
@@ -33,7 +36,9 @@ import com.rinf.bringx.ViewModels.OrderViewModel;
 import com.rinf.bringx.ViewModels.VM;
 import com.rinf.bringx.service.GPSTracker;
 import com.rinf.bringx.storage.SettingsStorage;
-import com.rinf.bringx.utils.*;
+import com.rinf.bringx.utils.AlertGenerator;
+import com.rinf.bringx.utils.Localization;
+import com.rinf.bringx.utils.Log;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -74,6 +79,9 @@ public class LoginActivity extends ActionBarActivity {
 
     private Localization localization;
     private ProgressDialog loginProgressDialog;
+    private MediaPlayer mMediaPlayer = null;
+
+    private final String INTENT_PLAY_WARNING = "com.rinf.bringx.playWarning";
 
     private List<ExpandableControl> _expandableControls = new ArrayList<ExpandableControl>();
 
@@ -270,6 +278,27 @@ public class LoginActivity extends ActionBarActivity {
             }
         });
 
+        VM.MeetingsViewModel.OnFirstMeetingChanged.addObserver(new INotifier<Boolean>() {
+            @Override
+            public void OnValueChanged(Boolean value) {
+                if (value == false)
+                    return;
+
+                if (App.IsVisible() == false) {
+                    App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, true);
+
+                    final Intent notificationIntent = new Intent(App.Context(), LoginActivity.class);
+                    notificationIntent.setAction(Intent.ACTION_MAIN);
+                    notificationIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                    startActivity(notificationIntent);
+                }
+                else {
+                    playSoundAndDisplayAlert();
+                }
+
+            }
+        });
+
         // Next
         Bindings.BindVisible(Controls.get(R.id.layout_row_next), VM.MeetingsViewModel.CurrentMeeting.IsDrivingMode);
         Bindings.BindText(Controls.get(R.id.value_meeting_next), VM.MeetingsViewModel.NextMeeting.Name);
@@ -287,11 +316,19 @@ public class LoginActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        App.OnActivityResumed();
+
         Log.d("onResume");
 
         if (VM.LoginViewModel.IsLoggedIn.get() == true) {
             // Start the GPS service even if the providers are OFF and also when app is brought to foreground
             startService(new Intent(this, GPSTracker.class));
+
+            if (App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
+                playSoundAndDisplayAlert();
+
+                App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
+            }
         }
 
         registerReceiver(mConnReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
@@ -300,8 +337,38 @@ public class LoginActivity extends ActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        App.OnActivityPaused();
 
         unregisterReceiver(mConnReceiver);
+    }
+
+    private void playSoundAndDisplayAlert() {
+        try {
+            Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            mMediaPlayer = new MediaPlayer();
+            mMediaPlayer.setDataSource(App.Context(), soundUri);
+            final AudioManager audioManager = (AudioManager) App.Context().getSystemService(Context.AUDIO_SERVICE);
+
+            if (audioManager.getStreamVolume(AudioManager.STREAM_ALARM) != 0) {
+                mMediaPlayer.setAudioStreamType(AudioManager.STREAM_ALARM);
+                mMediaPlayer.setLooping(true);
+                mMediaPlayer.prepare();
+                mMediaPlayer.start();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_confirmation_title, R.string.msg_alert_first_meeting_changed, new Callable() {
+            @Override
+            public Object call() throws Exception {
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.stop();
+                }
+
+                return null;
+            }
+        });
     }
 
     public void showSettingsAlert() {
@@ -335,6 +402,8 @@ public class LoginActivity extends ActionBarActivity {
         if (!tracker.IsGPSEnabled() && !tracker.IsNetworkEnabled()) {
             showSettingsAlert();
         }
+
+        App.DeviceManager().RegisterForPushNotifications(this);
     }
 
     @Override
@@ -343,7 +412,6 @@ public class LoginActivity extends ActionBarActivity {
 
         menu.findItem(R.id.action_rejected_customer).setVisible(visible && (VM.MeetingsViewModel.OnNoMoreJobs.get() == false));
         menu.findItem(R.id.action_not_possible_driver).setVisible(visible && (VM.MeetingsViewModel.OnNoMoreJobs.get() == false));
-        menu.findItem(R.id.action_logout).setVisible(visible);
 
         return true;
     }
@@ -358,15 +426,14 @@ public class LoginActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_exit_app:
-                showOKCancelDialog(R.string.msg_exit_app, new Callable() {
+                showOKCancelDialog(R.string.msg_exit_app, new INotifier<String>() {
                     @Override
-                    public Object call() throws Exception {
+                    public void OnValueChanged(String value) {
+                        VM.LoginViewModel.Logout();
                         stopService(new Intent(LoginActivity.this, GPSTracker.class));
                         finish();
-
-                        return null;
                     }
-                });
+                }, 0);
 
                 break;
 
@@ -378,38 +445,27 @@ public class LoginActivity extends ActionBarActivity {
 
                 break;
 
-            case R.id.action_logout:
-                showOKCancelDialog(R.string.msg_logout_app, new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        VM.LoginViewModel.Logout();
-
-                        return null;
-                    }
-                });
-
-                break;
-
             case R.id.action_rejected_customer:
-
-                showOKCancelDialog(R.string.msg_rejected_customer, new Callable() {
+                VM.MeetingsViewModel.CurrentMeeting.ReasonRejected.set("");
+                showOKCancelDialog(R.string.msg_rejected_customer, new INotifier<String>() {
                     @Override
-                    public Object call() throws Exception {
+                    public void OnValueChanged(String value) {
+                        VM.MeetingsViewModel.CurrentMeeting.ReasonRejected.set(value);
                         VM.MeetingsViewModel.CurrentMeeting.SetStatus(MEETING_STATUS.REJECTED_CUSTOMER);
-                        return null;
                     }
-                });
+                }, R.layout.rejected_form_layout);
 
                 break;
 
             case R.id.action_not_possible_driver:
-                showOKCancelDialog(R.string.msg_rejected_customer, new Callable() {
+                VM.MeetingsViewModel.CurrentMeeting.ReasonRejected.set("");
+                showOKCancelDialog(R.string.msg_rejected_customer, new INotifier<String>() {
                     @Override
-                    public Object call() throws Exception {
+                    public void OnValueChanged(String value) {
+                        VM.MeetingsViewModel.CurrentMeeting.ReasonRejected.set(value);
                         VM.MeetingsViewModel.CurrentMeeting.SetStatus(MEETING_STATUS.REJECTED_DRIVER);
-                        return null;
                     }
-                });
+                }, R.layout.rejected_form_layout);
 
                 break;
         }
@@ -417,7 +473,7 @@ public class LoginActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void showOKCancelDialog(int msgId, final Callable onOk) {
-        AlertGenerator.ShowOkCancelAlert(this, R.string.msg_alert_confirmation_title, msgId, onOk, null);
+    private void showOKCancelDialog(int msgId, final INotifier<String> onOk, int layoutId) {
+        AlertGenerator.ShowOkCancelAlert(this, R.string.msg_alert_confirmation_title, msgId, onOk, null, layoutId);
     }
 }

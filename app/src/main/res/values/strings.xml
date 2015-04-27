@@ -30,7 +30,7 @@
     <string name="btn_cancel">Cancel</string>
     <string name="msg_exit_app">Are you sure you want to exit?</string>
     <string name="msg_logout_app">Are you sure you want to logout?</string>
-    <string name="msg_rejected_customer">Are you sure you want to mark the meeting as \'rejected\'?</string>
+    <string name="msg_rejected_customer">Are you sure you want to mark the meeting as \'rejected\'?\nPlease fill in the reason below:</string>
     <string name="str_meeting_eta">ETA</string>
     <string name="str_meeting_destination">Dest.</string>
     <string name="str_meeting_details">Details</string>
@@ -45,4 +45,6 @@
     <string name="str_meeting_pay">Pay</string>
     <string name="msg_alert_getting_jobs">Retrieving jobs</string>
     <string name="msg_alert_no_internet_connection">The application requires an active Internet connection to work. Please check your settings</string>
+    <string name="msg_alert_first_meeting_changed">Your current meeting has changed. Please acknowledge the changes.</string>
+    <string name="lbl_fill_rejected_reason">Please fill in the reason below:</string>
 </resources>

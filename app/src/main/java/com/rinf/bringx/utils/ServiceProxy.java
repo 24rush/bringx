@@ -21,9 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 
 class URLS {
-    public static String LoginURL = "http://auftrag.bringx.com/json/login/1";
-    public static String JobsURL = "http://auftrag.bringx.com/json/route/";
-    public static String StatusURL = "http://auftrag.bringx.com/json/drp/";
+    public static String LoginURL = "http://dev-auftrag.bringx.com/json/login/1";
+    public static String JobsURL = "http://dev-auftrag.bringx.com/json/route/";
+    public static String StatusURL = "http://dev-auftrag.bringx.com/json/drp/";
 }
 
 public class ServiceProxy {
@@ -52,15 +52,15 @@ public class ServiceProxy {
         ordersListTask.execute();
     }
 
-    public void SetMeetingStatus(String userName, String orderId, String status) {
+    public void SetMeetingStatus(String userName, String orderId, String status, String rejectedReason) {
         if (checkConnection() == false) {
             if (_statusHandler != null)
-                _statusHandler.OnError(new Error(0, "No Internet Connection"), userName, orderId, status);
+                _statusHandler.OnError(new Error(0, "No Internet Connection"), userName, orderId, status, rejectedReason);
 
             return;
         }
 
-        MeetingStatusTask meetingStatusTask = new MeetingStatusTask(_statusHandler, userName, orderId, status);
+        MeetingStatusTask meetingStatusTask = new MeetingStatusTask(_statusHandler, userName, orderId, status, rejectedReason);
         meetingStatusTask.execute();
     }
 }
@@ -69,7 +69,7 @@ abstract class AsyncTaskReport<Params, Progress, Return> extends AsyncTask<Param
     protected IStatusHandler _statusHandler;
     protected Params[] _params;
 
-    public AsyncTaskReport(IStatusHandler statusHandler, Params ...params) {
+    public AsyncTaskReport(IStatusHandler statusHandler, Params... params) {
         _statusHandler = statusHandler;
         _params = params.clone();
     }
@@ -116,18 +116,9 @@ class UserLoginTask extends AsyncTaskReport<String, Void, JSONObject> {
             jsonParams.put("username", _params[0]);
             jsonParams.put("password", DataUtils.md5(_params[1]));
 
-            jsonObj = new JSONObject(App.Requester().POST(URLS.LoginURL, jsonParams));
-
-            Thread.sleep(2000, 0);
-
-            if (_params[0].equals("a") && _params[1].equals("b"))
-                jsonObj = new JSONObject("{\"status\":\"true\"}");
-            else
-                jsonObj = new JSONObject("{\"status\":\"false\"}");
-
+            //return new JSONObject(App.Requester().POST(URLS.LoginURL, jsonParams));
+return null;
         } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -136,20 +127,22 @@ class UserLoginTask extends AsyncTaskReport<String, Void, JSONObject> {
 
     @Override
     protected void onPostExecute(JSONObject jsonObj) {
+        ReportSuccess(jsonObj);
+        return;/*
         if (jsonObj == null) {
             ReportError(500, "Server error");
             return;
         }
 
         try {
-            if (jsonObj.getString("status").equals("true")) {
+            if (!jsonObj.getString("status").equals("fail")) {
                 ReportSuccess(jsonObj);
             } else {
                 ReportError(403, "Invalid login credentials");
             }
         } catch (JSONException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 }
 
@@ -323,19 +316,59 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
         super(statusHandler, p);
     }
 
+    public List<Meeting> OnMeetingsListReceived(String meetingsListPayload) {
+        String[] tokens = meetingsListPayload.split(",");
+
+        List<Meeting> meetingList = new ArrayList<Meeting>();
+
+        for (int i = 0; i < tokens.length; i += 3) {
+            String orderCompStr = tokens[i].trim();
+            String etaPickupStr = tokens[i + 1].trim();
+            String etaDeliveryStr = tokens[i + 2].trim();
+
+            String[] arrOrderComp = orderCompStr.split("-");
+            String orderId = arrOrderComp[0];
+            String orderVersion = arrOrderComp[1];
+
+            Date etaPickup = null;
+            if (!etaPickupStr.equals("")) {
+                etaPickup = new Date(Long.parseLong(etaPickupStr) * 1000);
+            }
+
+            Date etaDelivery = null;
+            if (!etaDeliveryStr.equals("")) {
+                etaDelivery = new Date(Long.parseLong(etaDeliveryStr) * 1000);
+            }
+
+            Meeting meeting = new Meeting(orderId, orderVersion, etaPickup, etaDelivery);
+            meetingList.add(meeting);
+        }
+
+        // Save meetings list
+        String mList = "";
+        for (Meeting meet : meetingList) {
+            mList += meet.toString() + ",";
+        }
+
+        if (!mList.isEmpty()) {
+            mList = mList.substring(0, mList.length() - 1);
+            App.StorageManager().Setting().setString(SettingsStorage.LAST_MEETINGS_ORDER, mList);
+        }
+
+        return meetingList;
+    }
+
     @Override
     protected List<Meeting> doInBackground(String... a) {
         if (_params.length != 1) {
             return null;
         }
 
-        List<Meeting> meetingList = null;
+        String meetingsListPayload = "";
 
         Log.d("Performing GetMeetingsList for: " + _params[0] + " on device: " + App.DeviceManager().DeviceId());
 
         try {
-            String meetingsListPayload = "";
-
             if (App.DeviceManager().IsNetworkAvailable() == false) {
                 meetingsListPayload = App.StorageManager().Setting().getString(SettingsStorage.LAST_MEETINGS_ORDER);
             } else {
@@ -347,51 +380,13 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
                 meetingsListPayload = "1015-01,1429172461,1429172471,1014-01,,1429172961";
             }
 
-            String[] tokens = meetingsListPayload.split(",");
-
-            meetingList = new ArrayList<Meeting>();
-
-            for (int i = 0; i < tokens.length; i += 3) {
-                String orderCompStr = tokens[i].trim();
-                String etaPickupStr = tokens[i + 1].trim();
-                String etaDeliveryStr = tokens[i + 2].trim();
-
-                String[] arrOrderComp = orderCompStr.split("-");
-                String orderId = arrOrderComp[0];
-                String orderVersion = arrOrderComp[1];
-
-                Date etaPickup = null;
-                if (!etaPickupStr.equals("")) {
-                    etaPickup = new Date(Long.parseLong(etaPickupStr) * 1000);
-                }
-
-                Date etaDelivery = null;
-                if (!etaDeliveryStr.equals("")) {
-                    etaDelivery = new Date(Long.parseLong(etaDeliveryStr) * 1000);
-                }
-
-                Meeting meeting = new Meeting(orderId, orderVersion, etaPickup, etaDelivery);
-                meetingList.add(meeting);
-            }
-
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        // Save meetings list
-        String mList = "";
-        for (Meeting meet : meetingList) {
-             mList += meet.toString() + ",";
-        }
-
-        if (!mList.isEmpty()) {
-            mList = mList.substring(0, mList.length() - 1);
-            App.StorageManager().Setting().setString(SettingsStorage.LAST_MEETINGS_ORDER, mList);
-        }
-
-        return meetingList;
+        return OnMeetingsListReceived(meetingsListPayload);
     }
 
     @Override
@@ -422,7 +417,7 @@ class MeetingStatusTask extends AsyncTaskReport<String, Void, Boolean> {
 
     @Override
     protected Boolean doInBackground(String... a) {
-        if (_params.length != 3) {
+        if (_params.length != 4) {
             return false;
         }
 

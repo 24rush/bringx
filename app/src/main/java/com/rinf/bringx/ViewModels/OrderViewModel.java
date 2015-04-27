@@ -26,6 +26,8 @@ public class OrderViewModel {
     public Observable<String> FromTo = new Observable<String>("");
     public Observable<String> Pay = new Observable<String>("");
 
+    public Observable<String> ReasonRejected = new Observable<String>("");
+
     public Observable<Boolean> IsDrivingMode = new Observable<Boolean>(true);
     public Observable<Boolean> IsMeetingMode = new Observable<Boolean>(false);
 
@@ -116,8 +118,8 @@ public class OrderViewModel {
         pay += "Total: " + (priceGoods + modelData.PriceDelivery()) + ">\nGoods: " + priceGoods + "\nDelivery: " + modelData.PriceDelivery();
         Pay.set(pay);
 
-        Instructions.set(!_address.Instructions().isEmpty() ? (_address.Instructions() + " >") : "No info available");
-        Notes.set(!_address.Notes().isEmpty() ? _address.Notes() : "No notes available");
+        Instructions.set(!_address.Instructions().isEmpty() ? (_address.Instructions() + " >") : "--");
+        Notes.set(!_address.Notes().isEmpty() ? _address.Notes() : "--");
     }
 
     public void AdvanceOrderStatus() {

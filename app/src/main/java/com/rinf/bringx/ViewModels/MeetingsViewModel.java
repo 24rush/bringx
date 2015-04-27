@@ -52,6 +52,90 @@ public class MeetingsViewModel {
 
     public Observable<Boolean> IsRetrievingData = new Observable<Boolean>(false);
     public Observable<Boolean> CanDisplayMeetings = new Observable<Boolean>(false);
+    public Observable<Boolean> OnFirstMeetingChanged = new Observable<Boolean>(false);
+
+    private IStatusHandler<List<Meeting>, String> _meetingsListStatusHandler =  new IStatusHandler<List<Meeting>, String>() {
+        @Override
+        public void OnError(com.rinf.bringx.utils.Error err, String... p) {
+            IsRetrievingData.set(false);
+            CanDisplayMeetings.set(false);
+        }
+
+        @Override
+        public void OnSuccess(List<Meeting> response, String... p) {
+            MeetingsList = response;
+
+            IStatusHandler<List<Order>, Object> statusHandlerOrders = new IStatusHandler<List<Order>, Object>() {
+                @Override
+                public void OnError(com.rinf.bringx.utils.Error err, Object... p) {
+                    IsRetrievingData.set(false);
+                    CanDisplayMeetings.set(false);
+                }
+
+                @Override
+                public void OnSuccess(List<Order> response, Object... p) {
+                    OnFirstMeetingChanged.set(false);
+                    IsRetrievingData.set(false);
+
+                    // Here we should have all the orders we need
+                    // Start by breaking them in pickup/delivery then sort them
+                    OrderedMeeting firstMeeting = null;
+                    if (_orderedMeetings.size() > 0) {
+                        firstMeeting = _orderedMeetings.get(0);
+                    }
+
+                    _orderedMeetings.clear();
+                    for (Meeting meeting : MeetingsList) {
+                        if (meeting.ETADelivery != null)
+                            _orderedMeetings.add(new OrderedMeeting(MeetingType.Delivery, meeting));
+
+                        if (meeting.ETAPickup != null)
+                            _orderedMeetings.add(new OrderedMeeting(MeetingType.Pickup, meeting));
+                    }
+
+                    // OrderedMeetings contains the ordered list of pickup and deliveries
+                    Collections.sort(_orderedMeetings);
+                    OrderedMeeting newFirstMeeting = _orderedMeetings.get(0);
+
+                    if (firstMeeting != null && (!firstMeeting.OrderId.equals(newFirstMeeting.OrderId) || firstMeeting.Type != newFirstMeeting.Type ||
+                        !firstMeeting.OrderVersion.equals(newFirstMeeting.OrderVersion) || firstMeeting.ETA.compareTo(newFirstMeeting.ETA) != 0)) {
+                        // Play sound and display alert
+                        Log.d("First meeting changed");
+                        OnFirstMeetingChanged.set(true);
+                    }
+
+                    OrdersList.clear();
+                    for (OrderedMeeting orderedJob : _orderedMeetings) {
+                        for (int i = 0; i < response.size(); i++) {
+                            Order order = response.get(i);
+
+                            // Validate finalized Meetings
+                            if (orderedJob.Type == MeetingType.Delivery && order.DeliveryAddress().Status() == "delivery-success")
+                                continue;
+
+                            if (orderedJob.Type == MeetingType.Pickup && order.PickupAddress().Status() == "loaded")
+                                continue;
+
+                            if (order.Id().equals(orderedJob.OrderId) && order.Version().equals(orderedJob.OrderVersion)) {
+                                OrdersList.add(new OrderViewModel(orderedJob, order));
+                                break;
+                            }
+                        }
+                    }
+
+                    if (OrdersList.size() > 0) {
+                        loadCurrentAndNextMeetings(false);
+                    } else {
+                        // No Orders to process
+                        OnNoMoreJobs.set(true);
+                    }
+                }
+            };
+
+            ServiceProxy proxy = new ServiceProxy(statusHandlerOrders);
+            proxy.GetOrdersList(VM.LoginViewModel.UserName.get(), response);
+        }
+    };
 
     public MeetingsViewModel() {
         VM.LoginViewModel.IsLoggedIn.addObserverContext(new IContextNotifier<Boolean>() {
@@ -90,7 +174,7 @@ public class MeetingsViewModel {
                 };
 
                 ServiceProxy proxy = new ServiceProxy(statusHandler);
-                proxy.SetMeetingStatus(VM.LoginViewModel.UserName.get(), CurrentMeeting.ParentOrderId, OrderViewModel.mapStatus(value));
+                proxy.SetMeetingStatus(VM.LoginViewModel.UserName.get(), CurrentMeeting.ParentOrderId, OrderViewModel.mapStatus(value), CurrentMeeting.ReasonRejected.get());
 
                 Log.d("Setting status " + value + " to " + CurrentMeeting.ParentOrderId);
                 App.StorageManager().Orders().setString(CurrentMeeting.ParentOrderId, CurrentMeeting.ModelData().toString());
@@ -125,6 +209,10 @@ public class MeetingsViewModel {
 
     public void OnInternetConnectionChanged() {
         if (App.DeviceManager().IsNetworkAvailable() == true) {
+            if (VM.LoginViewModel.IsLoggedIn.get() == false) {
+                return;
+            }
+
             Log.d("Device is connected to Internet. Checking pending status updates.");
 
             String pendingStatuses = App.StorageManager().Setting().getString(SettingsStorage.PENDING_STATUSES);
@@ -146,7 +234,7 @@ public class MeetingsViewModel {
                 for (String pair : pairs) {
                     String[] kv = pair.split(",");
 
-                    sp.SetMeetingStatus(VM.LoginViewModel.UserName.get(), kv[0], kv[1]);
+                    sp.SetMeetingStatus(VM.LoginViewModel.UserName.get(), kv[0], kv[1], "");
                 }
             }
         }
@@ -174,77 +262,14 @@ public class MeetingsViewModel {
         }
     }
 
+    public void OnPushReceived(List<Meeting> newMeetingsList) {
+        if (newMeetingsList != null) {
+            _meetingsListStatusHandler.OnSuccess(newMeetingsList);
+        }
+    }
+
     public void GetMeetingsList() {
-        IStatusHandler<List<Meeting>, String> statusHandler = new IStatusHandler<List<Meeting>, String>() {
-            @Override
-            public void OnError(com.rinf.bringx.utils.Error err, String... p) {
-                IsRetrievingData.set(false);
-                CanDisplayMeetings.set(false);
-            }
-
-            @Override
-            public void OnSuccess(List<Meeting> response, String... p) {
-                MeetingsList = response;
-
-                IStatusHandler<List<Order>, Object> statusHandlerOrders = new IStatusHandler<List<Order>, Object>() {
-                    @Override
-                    public void OnError(com.rinf.bringx.utils.Error err, Object... p) {
-                        IsRetrievingData.set(false);
-                        CanDisplayMeetings.set(false);
-                    }
-
-                    @Override
-                    public void OnSuccess(List<Order> response, Object... p) {
-                        IsRetrievingData.set(false);
-
-                        // Here we should have all the orders we need
-                        // Start by breaking them in pickup/delivery then sort them
-                        _orderedMeetings.clear();
-                        for (Meeting meeting : MeetingsList) {
-                            if (meeting.ETADelivery != null)
-                                _orderedMeetings.add(new OrderedMeeting(MeetingType.Delivery, meeting));
-
-                            if (meeting.ETAPickup != null)
-                                _orderedMeetings.add(new OrderedMeeting(MeetingType.Pickup, meeting));
-                        }
-
-                        // OrderedMeetings contains the ordered list of pickup and deliveries
-                        Collections.sort(_orderedMeetings);
-
-                        OrdersList.clear();
-                        for (OrderedMeeting orderedJob : _orderedMeetings) {
-                            for (int i = 0; i < response.size(); i++) {
-                                Order order = response.get(i);
-
-                                // Validate finalized Meetings
-                                if (orderedJob.Type == MeetingType.Delivery && order.DeliveryAddress().Status() == "delivery-success")
-                                    continue;
-
-                                if (orderedJob.Type == MeetingType.Pickup && order.PickupAddress().Status() == "loaded")
-                                    continue;
-
-                                if (order.Id().equals(orderedJob.OrderId) && order.Version().equals(orderedJob.OrderVersion)) {
-                                    OrdersList.add(new OrderViewModel(orderedJob, order));
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (OrdersList.size() > 0) {
-                            loadCurrentAndNextMeetings(false);
-                        } else {
-                            // No Orders to process
-                            OnNoMoreJobs.set(true);
-                        }
-                    }
-                };
-
-                ServiceProxy proxy = new ServiceProxy(statusHandlerOrders);
-                proxy.GetOrdersList(VM.LoginViewModel.UserName.get(), response);
-            }
-        };
-
-        ServiceProxy proxy = new ServiceProxy(statusHandler);
+        ServiceProxy proxy = new ServiceProxy(_meetingsListStatusHandler);
         proxy.GetMeetingsList(VM.LoginViewModel.UserName.get());
     }
 }
