@@ -21,7 +21,6 @@ public class OrderViewModel {
     public Observable<String> Details = new Observable<String>();
 
     public Observable<String> Instructions = new Observable<String>();
-    public Observable<String> Notes = new Observable<String>();
 
     public Observable<String> FromTo = new Observable<String>("");
     public Observable<String> Pay = new Observable<String>("");
@@ -66,7 +65,6 @@ public class OrderViewModel {
         Name.set(other.Name.get());
         Details.set(other.Details.get());
         Instructions.set(other.Instructions.get());
-        Notes.set(other.Notes.get());
         FromTo.set(other.FromTo.get());
         Pay.set(other.Pay.get());
     }
@@ -92,12 +90,12 @@ public class OrderViewModel {
 
         String strAddress = "";
         strAddress = StringAppender.AppendIfFilled(strAddress, _address.Company(), _address.Street(), _address.Zip());
-        Address.set(strAddress + " >");
+        Address.set(strAddress);
 
-        Name.set(_address.Name() + " >");
+        Name.set(_address.Name());
 
         _altAddress = _type == MeetingType.Pickup ? modelData.DeliveryAddress() : modelData.PickupAddress();
-        FromTo.set(_altAddress.Name() + " >");
+        FromTo.set(_altAddress.Name());
 
         String cargo = "";
         Double cargoItemsPrice = 0.;
@@ -110,16 +108,16 @@ public class OrderViewModel {
             }
         }
 
-        Details.set(_order.NumberGoods() + " goods > \n" + cargo);
+        Details.set(_order.NumberGoods() + " goods\n" + cargo);
 
         String pay = "";
         Double priceGoods = (modelData.PriceGoods() != Double.NaN ? modelData.PriceGoods() : cargoItemsPrice);
 
-        pay += "Total: " + (priceGoods + modelData.PriceDelivery()) + ">\nGoods: " + priceGoods + "\nDelivery: " + modelData.PriceDelivery();
+        pay += "Total: " + (priceGoods + modelData.PriceDelivery()) + "\nGoods: " + priceGoods + "\nDelivery: " + modelData.PriceDelivery();
         Pay.set(pay);
 
-        Instructions.set(!_address.Instructions().isEmpty() ? (_address.Instructions() + " >") : "--");
-        Notes.set(!_address.Notes().isEmpty() ? _address.Notes() : "--");
+        String info = _address.Instructions() + (!_address.Notes().isEmpty() ? "\n" +  _address.Notes() : "");
+        Instructions.set(!info.equals("\n") ? info : "--");
     }
 
     public void AdvanceOrderStatus() {
@@ -177,9 +175,9 @@ public class OrderViewModel {
             case PICK_MEETING:
                 return "pick-meeting";
             case REJECTED_CUSTOMER:
-                return "rejected-customer";
+                return "rejected";
             case REJECTED_DRIVER:
-                return "rejected-driver";
+                return "failed";
             default:
                 return null;
         }

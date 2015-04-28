@@ -196,7 +196,7 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
                 "\"Company\": \"Logistics Start-up\"," +
                 "\"Street\": \"Böblinger Str. 43\"," +
                 "\"ZIP\": \"70196\"," +
-                "\"Instructions\": \"\"," +
+                "\"Instructions\": \"a\nb\nc\nd\ne\nf\"," +
                 "\"Notes\":\"\"," +
                 "\"Phone\": \"0176 8046 8925\"," +
                 "\"Mail\": \"mbrunner@bringx.com\"," +

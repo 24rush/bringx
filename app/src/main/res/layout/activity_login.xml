@@ -120,7 +120,8 @@
 
                     <TextView
                         android:id="@+id/value_meeting_destination"
-                        style="@style/TableValue_Meetings" />
+                        style="@style/TableValue_Meetings"
+                        android:maxLines="2"/>
                 </TableRow>
 
                 <TableRow style="@style/TableRow_Meetings">
@@ -131,7 +132,8 @@
 
                     <TextView
                         android:id="@+id/value_meeting_address"
-                        style="@style/TableValue_Meetings" />
+                        style="@style/TableValue_Meetings"
+                        android:maxLines="2"/>
                 </TableRow>
 
                 <TableRow style="@style/TableRow_Meetings">
@@ -142,9 +144,11 @@
 
                         android:text="@string/str_meeting_details" />
 
-                    <View style="@style/Table_CellRound" />
+                    <View style="@style/Table_CellRound" android:id="@+id/expander_round_meeting_details"/>
+                    <View style="@style/Table_CellClose" android:id="@+id/expander_close_meeting_details"/>
+                    <View style="@style/Table_CellOpen" android:id="@+id/expander_open_meeting_details"/>
 
-                    <TextView
+                    <com.rinf.bringx.utils.ExpandableTextView
                         android:id="@+id/value_meeting_details"
                         style="@style/TableValue_Meetings"
                         android:maxLines="1" />
@@ -155,29 +159,16 @@
 
                     <TextView
                         style="@style/TableLabel_Meetings"
-
                         android:text="@string/str_meeting_info" />
 
-                    <View style="@style/Table_CellRound" />
+                    <View style="@style/Table_CellRound" android:id="@+id/expander_round_meeting_info"/>
+                    <View style="@style/Table_CellClose" android:id="@+id/expander_close_meeting_info"/>
+                    <View style="@style/Table_CellOpen" android:id="@+id/expander_open_meeting_info"/>
 
-                    <TextView
+                    <com.rinf.bringx.utils.ExpandableTextView
                         android:id="@+id/value_meeting_info"
                         style="@style/TableValue_Meetings"
                         android:maxLines="4" />
-                </TableRow>
-
-                <TableRow style="@style/TableRow_Meetings">
-                    <!-- Notes -->
-
-                    <TextView
-                        style="@style/TableLabel_Meetings"
-                        android:text="@string/str_meeting_notes" />
-
-                    <View style="@style/Table_CellRound" />
-
-                    <TextView
-                        android:id="@+id/value_meeting_notes"
-                        style="@style/TableValue_Meetings" />
                 </TableRow>
 
                 <TableRow
@@ -193,7 +184,8 @@
 
                     <TextView
                         android:id="@+id/value_meeting_next"
-                        style="@style/TableValue_Meetings" />
+                        style="@style/TableValue_Meetings"
+                        android:maxLines="2"/>
                 </TableRow>
 
                 <TableRow
@@ -209,7 +201,8 @@
 
                     <TextView
                         android:id="@+id/value_meeting_fromTo"
-                        style="@style/TableValue_Meetings" />
+                        style="@style/TableValue_Meetings"
+                        android:maxLines="1"/>
                 </TableRow>
 
                 <TableRow
@@ -220,9 +213,11 @@
                         style="@style/TableLabel_Meetings"
                         android:text="@string/str_meeting_pay" />
 
-                    <View style="@style/Table_CellRound" />
+                    <View style="@style/Table_CellRound" android:id="@+id/expander_round_meeting_pay"/>
+                    <View style="@style/Table_CellClose" android:id="@+id/expander_close_meeting_pay"/>
+                    <View style="@style/Table_CellOpen" android:id="@+id/expander_open_meeting_pay"/>
 
-                    <TextView
+                    <com.rinf.bringx.utils.ExpandableTextView
                         android:id="@+id/value_meeting_pay"
                         style="@style/TableValue_Meetings"
                         android:maxLines="1" />

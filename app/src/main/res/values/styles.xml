@@ -39,4 +39,22 @@
         <item name="android:background">@drawable/cell_round</item>
     </style>
 
+    <style name="Table_CellClose">
+        <item name="android:layout_height">18dp</item>
+        <item name="android:layout_width">18dp</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:layout_marginLeft">-3dp</item>
+        <item name="android:layout_gravity">top</item>
+        <item name="android:background">@mipmap/ic_arrow_closed</item>
+    </style>
+
+    <style name="Table_CellOpen">
+        <item name="android:layout_height">18dp</item>
+        <item name="android:layout_width">18dp</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:layout_marginLeft">-3dp</item>
+        <item name="android:layout_gravity">top</item>
+        <item name="android:background">@mipmap/ic_arrow_opened</item>
+    </style>
+
 </resources>

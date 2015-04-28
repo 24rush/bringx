@@ -37,6 +37,7 @@ import com.rinf.bringx.ViewModels.VM;
 import com.rinf.bringx.service.GPSTracker;
 import com.rinf.bringx.storage.SettingsStorage;
 import com.rinf.bringx.utils.AlertGenerator;
+import com.rinf.bringx.utils.ExpandableTextView;
 import com.rinf.bringx.utils.Localization;
 import com.rinf.bringx.utils.Log;
 
@@ -46,24 +47,98 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 class ExpandableControl {
-    private TextView _control;
+    private ExpandableTextView _control;
     private int _defaultLines;
     private int _expandedLines;
 
+    private View _expanderOpen;
+    private View _expanderClose;
+    private View _expanderRound;
+
+    private int _lastCurrentLines = 0;
+
     public ExpandableControl(View control, int defaultLines, int expandedLines) {
-        _control = (TextView) control;
+        _control = (ExpandableTextView) control;
         _defaultLines = defaultLines;
         _expandedLines = expandedLines;
+
+        _control.setOnLayoutListener(new ExpandableTextView.OnLayoutListener() {
+            @Override
+            public void onLayout(TextView view) {
+                setupLayout(view);
+            }
+        });
+
+        _control.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ToggleExpand();
+            }
+        });
+    }
+
+    private void setupLayout(TextView view) {
+        int currentLines = view.getLineCount();
+
+        if (currentLines == _lastCurrentLines)
+            return;
+
+        _lastCurrentLines = currentLines;
+
+        _expanderRound.setVisibility(View.VISIBLE);
+        _expanderClose.setVisibility(View.GONE);
+        _expanderOpen.setVisibility(View.GONE);
+
+        Log.d("lines = " + currentLines + " " + _defaultLines);
+        if (currentLines > _defaultLines) {
+            _expanderRound.setVisibility(View.GONE);
+            _expanderOpen.setVisibility(View.GONE);
+
+            _expanderClose.setVisibility(View.VISIBLE);
+        }
+    }
+
+    public ExpandableControl done() {
+        setupLayout(_control);
+        return this;
+    }
+
+    public ExpandableControl setExpanderOpen(View expanderOpen) {
+        _expanderOpen = expanderOpen;
+        return this;
+    }
+
+    public ExpandableControl setExpanderClose(View expanderClose) {
+        _expanderClose = expanderClose;
+        return this;
+    }
+
+    public ExpandableControl setExpanderRound(View expanderRound) {
+        _expanderRound = expanderRound;
+        return this;
     }
 
     public void ToggleExpand() {
-        if (_control.getMaxLines() == _defaultLines)
+        Log.d("max line" + _control.getMaxLines() + "d " + _defaultLines + " " + _expandedLines);
+        if (_control.getMaxLines() == _defaultLines) {
             _control.setMaxLines(_expandedLines);
-        else
+
+            _expanderOpen.setVisibility(View.VISIBLE);
+            _expanderClose.setVisibility(View.GONE);
+        } else {
             _control.setMaxLines(_defaultLines);
+
+            _expanderOpen.setVisibility(View.GONE);
+            _expanderClose.setVisibility(View.VISIBLE);
+        }
     }
 
     public void ResetExpand() {
+        _expanderRound.setVisibility(View.VISIBLE);
+        _expanderClose.setVisibility(View.GONE);
+        _expanderOpen.setVisibility(View.GONE);
+
+        _lastCurrentLines = 0;
         _control.setMaxLines(_defaultLines);
     }
 
@@ -202,7 +277,6 @@ public class LoginActivity extends ActionBarActivity {
         Bindings.BindText(Controls.get(R.id.value_meeting_address), VM.MeetingsViewModel.CurrentMeeting.Address);
         Bindings.BindText(Controls.get(R.id.value_meeting_details), VM.MeetingsViewModel.CurrentMeeting.Details);
         Bindings.BindText(Controls.get(R.id.value_meeting_info), VM.MeetingsViewModel.CurrentMeeting.Instructions);
-        Bindings.BindText(Controls.get(R.id.value_meeting_notes), VM.MeetingsViewModel.CurrentMeeting.Notes);
 
         // Click on Name - call Phone number
         Bindings.BindCommand(Controls.get(R.id.value_meeting_destination), new ICommand<OrderViewModel>() {
@@ -239,18 +313,20 @@ public class LoginActivity extends ActionBarActivity {
 
         Bindings.BindCommand(Controls.get(R.id.value_meeting_address), onClickAddressName, VM.MeetingsViewModel.CurrentMeeting);
 
-        _expandableControls.add(new ExpandableControl(Controls.get(R.id.value_meeting_details), 1, 4));
-        _expandableControls.add(new ExpandableControl(Controls.get(R.id.value_meeting_info), 4, 50));
-        _expandableControls.add(new ExpandableControl(Controls.get(R.id.value_meeting_pay), 1, 4));
+        _expandableControls.add((new ExpandableControl(Controls.get(R.id.value_meeting_details), 1, 4))
+                .setExpanderRound(Controls.get(R.id.expander_round_meeting_details))
+                .setExpanderClose(Controls.get(R.id.expander_close_meeting_details))
+                .setExpanderOpen(Controls.get(R.id.expander_open_meeting_details)).done());
 
-        for (ExpandableControl exp : _expandableControls) {
-            Bindings.BindCommand(exp.Control(), new ICommand<ExpandableControl>() {
-                @Override
-                public void Execute(ExpandableControl context) {
-                    context.ToggleExpand();
-                }
-            }, exp);
-        }
+        _expandableControls.add((new ExpandableControl(Controls.get(R.id.value_meeting_info), 4, 50))
+                .setExpanderRound(Controls.get(R.id.expander_round_meeting_info))
+                .setExpanderClose(Controls.get(R.id.expander_close_meeting_info))
+                .setExpanderOpen(Controls.get(R.id.expander_open_meeting_info)).done()
+        );
+        _expandableControls.add((new ExpandableControl(Controls.get(R.id.value_meeting_pay), 1, 4))
+                .setExpanderRound(Controls.get(R.id.expander_round_meeting_pay))
+                .setExpanderClose(Controls.get(R.id.expander_close_meeting_pay))
+                .setExpanderOpen(Controls.get(R.id.expander_open_meeting_pay)).done());
 
         Bindings.BindText(Controls.get(R.id.btn_order_status), VM.MeetingsViewModel.StatusButton);
         Bindings.BindCommand(Controls.get(R.id.btn_order_status), new ICommand<Object>() {
@@ -261,6 +337,8 @@ public class LoginActivity extends ActionBarActivity {
                 for (ExpandableControl exp : _expandableControls) {
                     exp.ResetExpand();
                 }
+
+                Log.d("line count: " + ((TextView) Controls.get(R.id.value_meeting_info)).getLineCount());
             }
         }, null);
 
@@ -291,8 +369,7 @@ public class LoginActivity extends ActionBarActivity {
                     notificationIntent.setAction(Intent.ACTION_MAIN);
                     notificationIntent.addCategory(Intent.CATEGORY_LAUNCHER);
                     startActivity(notificationIntent);
-                }
-                else {
+                } else {
                     playSoundAndDisplayAlert();
                 }
 
