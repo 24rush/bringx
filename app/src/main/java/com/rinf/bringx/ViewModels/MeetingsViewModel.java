@@ -54,11 +54,17 @@ public class MeetingsViewModel {
     public Observable<Boolean> CanDisplayMeetings = new Observable<Boolean>(false);
     public Observable<Boolean> OnFirstMeetingChanged = new Observable<Boolean>(false);
 
-    private IStatusHandler<List<Meeting>, String> _meetingsListStatusHandler =  new IStatusHandler<List<Meeting>, String>() {
+    public Observable<Boolean> IsError = new Observable<Boolean>(false);
+    public String Error;
+
+    private IStatusHandler<List<Meeting>, String> _meetingsListStatusHandler = new IStatusHandler<List<Meeting>, String>() {
         @Override
         public void OnError(com.rinf.bringx.utils.Error err, String... p) {
             IsRetrievingData.set(false);
             CanDisplayMeetings.set(false);
+
+            Error = err.Message;
+            IsError.set(true);
         }
 
         @Override
@@ -70,6 +76,9 @@ public class MeetingsViewModel {
                 public void OnError(com.rinf.bringx.utils.Error err, Object... p) {
                     IsRetrievingData.set(false);
                     CanDisplayMeetings.set(false);
+
+                    Error = err.Message;
+                    IsError.set(true);
                 }
 
                 @Override
@@ -93,15 +102,17 @@ public class MeetingsViewModel {
                             _orderedMeetings.add(new OrderedMeeting(MeetingType.Pickup, meeting));
                     }
 
-                    // OrderedMeetings contains the ordered list of pickup and deliveries
-                    Collections.sort(_orderedMeetings);
-                    OrderedMeeting newFirstMeeting = _orderedMeetings.get(0);
+                    if (_orderedMeetings.size() > 0) {
+                        // OrderedMeetings contains the ordered list of pickup and deliveries
+                        Collections.sort(_orderedMeetings);
+                        OrderedMeeting newFirstMeeting = _orderedMeetings.get(0);
 
-                    if (firstMeeting != null && (!firstMeeting.OrderId.equals(newFirstMeeting.OrderId) || firstMeeting.Type != newFirstMeeting.Type ||
-                        !firstMeeting.OrderVersion.equals(newFirstMeeting.OrderVersion) || firstMeeting.ETA.compareTo(newFirstMeeting.ETA) != 0)) {
-                        // Play sound and display alert
-                        Log.d("First meeting changed");
-                        OnFirstMeetingChanged.set(true);
+                        if (firstMeeting != null && newFirstMeeting != null && (!firstMeeting.OrderId.equals(newFirstMeeting.OrderId) || firstMeeting.Type != newFirstMeeting.Type ||
+                                !firstMeeting.OrderVersion.equals(newFirstMeeting.OrderVersion) || firstMeeting.ETA.compareTo(newFirstMeeting.ETA) != 0)) {
+                            // Play sound and display alert
+                            Log.d("First meeting changed");
+                            OnFirstMeetingChanged.set(true);
+                        }
                     }
 
                     OrdersList.clear();
@@ -133,7 +144,7 @@ public class MeetingsViewModel {
             };
 
             ServiceProxy proxy = new ServiceProxy(statusHandlerOrders);
-            proxy.GetOrdersList(VM.LoginViewModel.UserName.get(), response);
+            proxy.GetOrdersList(VM.LoginViewModel.UserName.get(), response, VM.LoginViewModel.DriverId.get(), VM.LoginViewModel.AuthToken.get());
         }
     };
 
@@ -237,8 +248,7 @@ public class MeetingsViewModel {
                     sp.SetMeetingStatus(VM.LoginViewModel.UserName.get(), kv[0], kv[1], "");
                 }
             }
-        }
-        else
+        } else
             Log.d("Device is NOT connected to Internet");
     }
 
@@ -270,6 +280,6 @@ public class MeetingsViewModel {
 
     public void GetMeetingsList() {
         ServiceProxy proxy = new ServiceProxy(_meetingsListStatusHandler);
-        proxy.GetMeetingsList(VM.LoginViewModel.UserName.get());
+        proxy.GetMeetingsList(VM.LoginViewModel.UserName.get(), VM.LoginViewModel.DriverId.get(), VM.LoginViewModel.AuthToken.get());
     }
 }

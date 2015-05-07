@@ -1,5 +1,6 @@
 package com.rinf.bringx.Views;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -220,29 +221,39 @@ public class LoginActivity extends ActionBarActivity {
 
         Bindings.BindChanged(VM.LoginViewModel.IsLoggingIn, new INotifier<Boolean>() {
             @Override
-            public void OnValueChanged(Boolean value) {
-                if (value == true) {
-                    loginProgressDialog = new ProgressDialog(LoginActivity.this);
-                    loginProgressDialog.setMessage(localization.getText(R.string.lbl_login_in_progress));
-                    loginProgressDialog.setCancelable(false);
-                    loginProgressDialog.show();
-                } else {
-                    if (loginProgressDialog != null)
-                        loginProgressDialog.dismiss();
-                }
+            public void OnValueChanged(final Boolean value) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (value == true) {
+                            loginProgressDialog = new ProgressDialog(LoginActivity.this);
+                            loginProgressDialog.setMessage(localization.getText(R.string.lbl_login_in_progress));
+                            loginProgressDialog.setCancelable(false);
+                            loginProgressDialog.show();
+                        } else {
+                            if (loginProgressDialog != null)
+                                loginProgressDialog.dismiss();
+                        }
+                    }
+                });
             }
         });
 
         Bindings.BindChanged(VM.LoginViewModel.IsError, new INotifier<Boolean>() {
             @Override
-            public void OnValueChanged(Boolean value) {
-                if (value == true) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(LoginActivity.this)
-                            .setTitle(localization.getText(R.string.msg_alert_login_error))
-                            .setMessage(VM.LoginViewModel.Error)
-                            .setPositiveButton(localization.getText(R.string.btn_ok), null);
-                    alertDialog.show();
-                }
+            public void OnValueChanged(final Boolean value) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (value == true) {
+                            AlertDialog.Builder alertDialog = new AlertDialog.Builder(LoginActivity.this)
+                                    .setTitle(localization.getText(R.string.msg_alert_login_error))
+                                    .setMessage(VM.LoginViewModel.Error)
+                                    .setPositiveButton(localization.getText(R.string.btn_ok), null);
+                            alertDialog.show();
+                        }
+                    }
+                });
             }
         });
 
@@ -255,16 +266,21 @@ public class LoginActivity extends ActionBarActivity {
 
         Bindings.BindChanged(VM.MeetingsViewModel.IsRetrievingData, new INotifier<Boolean>() {
             @Override
-            public void OnValueChanged(Boolean value) {
-                if (value == true) {
-                    loginProgressDialog = new ProgressDialog(LoginActivity.this);
-                    loginProgressDialog.setMessage(getString(R.string.msg_alert_getting_jobs));
-                    loginProgressDialog.setCancelable(false);
-                    loginProgressDialog.show();
-                } else {
-                    if (loginProgressDialog != null)
-                        loginProgressDialog.dismiss();
-                }
+            public void OnValueChanged(final Boolean value) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (value == true) {
+                            loginProgressDialog = new ProgressDialog(LoginActivity.this);
+                            loginProgressDialog.setMessage(getString(R.string.msg_alert_getting_jobs));
+                            loginProgressDialog.setCancelable(false);
+                            loginProgressDialog.show();
+                        } else {
+                            if (loginProgressDialog != null)
+                                loginProgressDialog.dismiss();
+                        }
+                    }
+                });
             }
         });
 
@@ -376,6 +392,24 @@ public class LoginActivity extends ActionBarActivity {
             }
         });
 
+        Bindings.BindChanged(VM.MeetingsViewModel.IsError, new INotifier<Boolean>() {
+            @Override
+            public void OnValueChanged(final Boolean value) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (value == true) {
+                            AlertDialog.Builder alertDialog = new AlertDialog.Builder(LoginActivity.this)
+                                    .setTitle(localization.getText(R.string.msg_alert_meetings_error))
+                                    .setMessage(VM.MeetingsViewModel.Error)
+                                    .setPositiveButton(localization.getText(R.string.btn_ok), null);
+                            alertDialog.show();
+                        }
+                    }
+                });
+            }
+        });
+
         // Next
         Bindings.BindVisible(Controls.get(R.id.layout_row_next), VM.MeetingsViewModel.CurrentMeeting.IsDrivingMode);
         Bindings.BindText(Controls.get(R.id.value_meeting_next), VM.MeetingsViewModel.NextMeeting.Name);
@@ -399,7 +433,10 @@ public class LoginActivity extends ActionBarActivity {
 
         if (VM.LoginViewModel.IsLoggedIn.get() == true) {
             // Start the GPS service even if the providers are OFF and also when app is brought to foreground
-            startService(new Intent(this, GPSTracker.class));
+            Intent gpsServiceIntent = new Intent(this, GPSTracker.class);
+            gpsServiceIntent.putExtra("uid", VM.LoginViewModel.DriverId.get());
+            gpsServiceIntent.putExtra("mobileid", App.DeviceManager().DeviceId());
+            startService(gpsServiceIntent);
 
             if (App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
                 playSoundAndDisplayAlert();

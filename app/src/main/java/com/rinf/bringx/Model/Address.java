@@ -27,24 +27,23 @@ public class Address {
         _jsonObj = parser;
 
         try {
-            _name = parser.getString("Name");
-            _company = parser.optString("Company");
-            _street = parser.getString("Street");
-            _zip = parser.getString("ZIP");
-            _instructions = parser.optString("Instructions");
-            _notes = parser.optString("Notes");
-            _phone = parser.getString("Phone");
-            _mail = parser.optString("Mail");
+            _name = parser.getString("name");
+            _company = parser.optString("company");
+            _street = parser.getString("street");
+            _zip = parser.getString("zip");
+            _instructions = parser.optString("instruction");
+            _notes = parser.optString("notes");
+            _phone = parser.getString("phone");
+            _mail = parser.optString("mail");
 
-            String coord = parser.optString("Coordinates");
+            JSONObject coord = parser.optJSONObject("coordinates");
 
-            if (coord != null && !coord.equals("")) {
-                String[] values = coord.split(",");
-                _latitude = Double.parseDouble(values[0].trim());
-                _longitude = Double.parseDouble(values[1].trim());
+            if (coord != null) {
+                _latitude = coord.getDouble("X");
+                _longitude = coord.getDouble("Y");
             }
 
-            _status = parser.optString("DrpStatus");
+            _status = "";
 
         } catch (JSONException e) {
             e.printStackTrace();

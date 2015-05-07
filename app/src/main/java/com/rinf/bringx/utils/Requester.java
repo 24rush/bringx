@@ -82,7 +82,7 @@ public class Requester {
     }
 
     public String GET(String url, JSONObject jsonParams) {
-        Log.d("Making GET" + "request to " + url + " with " + jsonParams.toString());
+        Log.d("Making GET" + "request to " + url);
 
         String response = null;
 
@@ -98,8 +98,6 @@ public class Requester {
         try {
             HttpGet httpGet = new HttpGet(url);
             httpResponse = httpClient.execute(httpGet);
-            httpEntity = httpResponse.getEntity();
-            response = EntityUtils.toString(httpEntity);
 
             int statusCode = httpResponse.getStatusLine().getStatusCode();
             Log.e("Response code: " + statusCode);

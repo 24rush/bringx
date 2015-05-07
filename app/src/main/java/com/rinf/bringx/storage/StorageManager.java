@@ -59,4 +59,9 @@ public abstract class StorageManager <Type> {
         _editor.putBoolean(key, value);
         _editor.commit();
     }
+
+    public void remove(String key) {
+        _editor.remove(key);
+        _editor.commit();
+    }
 }

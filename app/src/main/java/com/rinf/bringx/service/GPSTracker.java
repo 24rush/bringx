@@ -11,10 +11,11 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.util.Log;
 
 import com.rinf.bringx.Views.LoginActivity;
 import com.rinf.bringx.R;
+import com.rinf.bringx.utils.Log;
+import com.rinf.bringx.utils.ServiceProxy;
 
 public class GPSTracker extends Service implements LocationListener {
 
@@ -38,6 +39,11 @@ public class GPSTracker extends Service implements LocationListener {
     private static final long MIN_TIME_BW_UPDATES = 1000 * 20 * 1; // 20 seconds
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
 
+    private static String _uid = "";
+    private static String _mobileId = "";
+
+    private ServiceProxy _sp = new ServiceProxy(null);
+
     protected LocationManager locationManager;
 
     public GPSTracker(Context ctx) {
@@ -50,7 +56,7 @@ public class GPSTracker extends Service implements LocationListener {
 
     private void registerLocationUpdateFromProvider(String provider) {
         if (locationManager == null) {
-            Log.e("[bringx]", "No location manager.");
+            Log.e("No location manager.");
             return;
         }
 
@@ -59,7 +65,7 @@ public class GPSTracker extends Service implements LocationListener {
                 MIN_DISTANCE_CHANGE_FOR_UPDATES,
                 this);
 
-        Log.d("Location provider", provider);
+        Log.d("Location provider" + provider);
 
         location = locationManager.getLastKnownLocation(provider);
 
@@ -126,13 +132,13 @@ public class GPSTracker extends Service implements LocationListener {
         if (newLocation == null)
             return;
 
-        Log.e("[bringx]", "location changed to: " + newLocation.getLongitude());
+        Log.e("location changed to: " + newLocation.getLongitude());
         onLocationUpdated(newLocation.getLongitude(), newLocation.getLatitude());
     }
  
     @Override
     public void onProviderDisabled(String provider) {
-        Log.e("[bringx]", provider + " was disabled.");
+        Log.e(provider + " was disabled.");
 
         if (provider.equals(LocationManager.GPS_PROVIDER))
             userDisabledGPS = true;
@@ -141,14 +147,14 @@ public class GPSTracker extends Service implements LocationListener {
             userDisabledNetwork = true;
 
         if (userDisabledGPS && userDisabledNetwork) {
-            Log.d("[bringx]", "Both location providers disabled. Setting (0, 0).");
+            Log.d("Both location providers disabled. Setting (0, 0).");
             onLocationUpdated(0, 0);
         }
     }
  
     @Override
     public void onProviderEnabled(String provider) {
-        Log.e("[bringx]", provider + " was enabled.");
+        Log.e(provider + " was enabled.");
 
         if (provider.equals(LocationManager.GPS_PROVIDER))
             userDisabledGPS = false;
@@ -169,6 +175,17 @@ public class GPSTracker extends Service implements LocationListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Bundle extras = intent.getExtras();
+
+        if (extras == null) {
+            Log.e("GPS Service: No parameters sent");
+        }
+        else
+        {
+           _uid = extras.getString("uid");
+           _mobileId = (String) extras.getString("mobileid");
+        }
+
         return START_REDELIVER_INTENT;
     }
 
@@ -179,14 +196,14 @@ public class GPSTracker extends Service implements LocationListener {
 
     @Override
     public void onDestroy() {
-        Log.d("[bringx]", "Destroying GPS service.");
+        Log.d("Destroying GPS service.");
 
         stopForeground(true);
         stopLocationUpdates();
     }
 
     private void onLocationUpdated(double longitude, double latitude) {
-        Log.d("[bringx]", String.valueOf(longitude) + ' ' + String.valueOf(latitude));
+        Log.d(String.valueOf(longitude) + ' ' + String.valueOf(latitude));
 
         Notification notification = new Notification.Builder(this)
                 .setContentTitle("BringX GPS Tracker")
@@ -206,5 +223,8 @@ public class GPSTracker extends Service implements LocationListener {
             startForeground(GPS_TRACKER_NOTIFICATION_ID, notification);
             isServiceStart = false;
         }
+
+        if (!_uid.isEmpty())
+            _sp.UpdatePosition(latitude, longitude, _uid, System.currentTimeMillis() / 1000L);
     }
 }

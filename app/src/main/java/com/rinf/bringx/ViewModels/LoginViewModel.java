@@ -8,6 +8,7 @@ import com.rinf.bringx.utils.Error;
 import com.rinf.bringx.utils.IStatusHandler;
 import com.rinf.bringx.utils.Log;
 import com.rinf.bringx.utils.ServiceProxy;
+import com.rinf.bringx.utils.StringAppender;
 
 import org.json.JSONObject;
 
@@ -16,6 +17,9 @@ public class LoginViewModel {
     public Observable<String> UserName = new Observable<String>("");
     public Observable<String> Password = new Observable<String>("");
 
+    public Observable<String> AuthToken = new Observable<String>("");
+    public Observable<String> DriverId = new Observable<String>("");
+
     public Observable<Boolean> IsLoggedIn = new Observable<Boolean>(false);
     public Observable<Boolean> IsLoggingIn = new Observable<Boolean>(false);
     public Observable<Boolean> IsError = new Observable<Boolean>(false);
@@ -23,6 +27,8 @@ public class LoginViewModel {
 
     private final String KEY_LOGIN_USER_NAME = "username";
     private final String KEY_LOGIN_PASSWORD = "password";
+    private final String KEY_AUTH_TOKEN = "auth_token";
+    private final String KEY_DRIVER_ID = "uid";
 
     public LoginViewModel() {
         UserName.addObserver(new INotifier<String>() {
@@ -36,7 +42,10 @@ public class LoginViewModel {
         UserName.set(App.StorageManager().Credentials().getString(KEY_LOGIN_USER_NAME));
         Password.set(App.StorageManager().Credentials().getString(KEY_LOGIN_PASSWORD));
 
-        if (!UserName.get().equals("") && !Password.get().equals("")) {
+        DriverId.set(App.StorageManager().Credentials().getString(KEY_DRIVER_ID));
+        AuthToken.set(App.StorageManager().Credentials().getString(KEY_AUTH_TOKEN));
+
+        if (!UserName.get().isEmpty() && !Password.get().isEmpty() && !DriverId.get().isEmpty() && !AuthToken.get().isEmpty()) {
             IsLoggedIn.set(true);
         }
     }
@@ -55,19 +64,27 @@ public class LoginViewModel {
                 IsError.set(true);
 
                 Password.set("");
-                IsLoggedIn.set(false);
+                DriverId.set("");
+                AuthToken.set("");
 
                 updateCacheCredentials();
+
+                IsLoggedIn.set(false);
             }
 
             @Override
-            public void OnSuccess(JSONObject response, String... params) {
+            public void OnSuccess(JSONObject data, String... params) {
                 IsLoggingIn.set(false);
                 Error = "";
                 IsError.set(false);
-                IsLoggedIn.set(true);
+
+
+                DriverId.set(data.optString(KEY_DRIVER_ID));
+                AuthToken.set(data.optString(KEY_AUTH_TOKEN));
 
                 updateCacheCredentials();
+
+                IsLoggedIn.set(true);
             }
         };
 
@@ -80,6 +97,9 @@ public class LoginViewModel {
 
         UserName.set("");
         Password.set("");
+        DriverId.set("");
+        AuthToken.set("");
+
         IsLoggedIn.set(false);
 
         Error = "";
@@ -91,5 +111,8 @@ public class LoginViewModel {
     private void updateCacheCredentials() {
         App.StorageManager().Credentials().setString(KEY_LOGIN_USER_NAME, UserName.get());
         App.StorageManager().Credentials().setString(KEY_LOGIN_PASSWORD, Password.get());
+
+        App.StorageManager().Credentials().setString(KEY_AUTH_TOKEN, AuthToken.get());
+        App.StorageManager().Credentials().setString(KEY_DRIVER_ID, DriverId.get());
     }
 }

@@ -22,8 +22,10 @@ import java.util.Objects;
 
 class URLS {
     public static String LoginURL = "http://dev-auftrag.bringx.com/json/login/1";
-    public static String JobsURL = "http://dev-auftrag.bringx.com/json/route/";
+    public static String OrdersETA = "http://dev-auftrag.bringx.com/json/drivers/%s/orders-eta?auth_token=%s&version=1.0.1";
+    public static String OrdersInfo = "http://dev-auftrag.bringx.com/json/drivers/%s/orders/%s?auth_token=%s&version=1.0.1";
     public static String StatusURL = "http://dev-auftrag.bringx.com/json/drp/";
+    public static String PositionUpdateURL = "http://dev-auftrag.bringx.com/json/driver/%s";
 }
 
 public class ServiceProxy {
@@ -42,14 +44,19 @@ public class ServiceProxy {
         loginTask.execute();
     }
 
-    public void GetMeetingsList(String userName) {
-        MeetingsListTask meetingsListTask = new MeetingsListTask(_statusHandler, userName);
+    public void GetMeetingsList(String userName, String driverId, String authToken) {
+        MeetingsListTask meetingsListTask = new MeetingsListTask(_statusHandler, userName, driverId, authToken);
         meetingsListTask.execute();
     }
 
-    public void GetOrdersList(String userName, List<Meeting> meetingsList) {
-        OrdersListTask ordersListTask = new OrdersListTask(_statusHandler, userName, meetingsList);
+    public void GetOrdersList(String userName, List<Meeting> meetingsList, String driverId, String authToken) {
+        OrdersListTask ordersListTask = new OrdersListTask(_statusHandler, userName, meetingsList, driverId, authToken);
         ordersListTask.execute();
+    }
+
+    public void UpdatePosition(Double latitude, Double longitude, String uid, Long ts) {
+        UpdatePositionTask updatePositionTask = new UpdatePositionTask(_statusHandler, latitude, longitude, uid, ts);
+        updatePositionTask.execute();
     }
 
     public void SetMeetingStatus(String userName, String orderId, String status, String rejectedReason) {
@@ -116,8 +123,8 @@ class UserLoginTask extends AsyncTaskReport<String, Void, JSONObject> {
             jsonParams.put("username", _params[0]);
             jsonParams.put("password", DataUtils.md5(_params[1]));
 
-            //return new JSONObject(App.Requester().POST(URLS.LoginURL, jsonParams));
-return null;
+            return new JSONObject(App.Requester().POST(URLS.LoginURL, jsonParams));
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -127,8 +134,6 @@ return null;
 
     @Override
     protected void onPostExecute(JSONObject jsonObj) {
-        ReportSuccess(jsonObj);
-        return;/*
         if (jsonObj == null) {
             ReportError(500, "Server error");
             return;
@@ -136,13 +141,20 @@ return null;
 
         try {
             if (!jsonObj.getString("status").equals("fail")) {
-                ReportSuccess(jsonObj);
+                JSONObject data = jsonObj.getJSONObject("data");
+
+                if (data != null && !data.optString("uid").isEmpty() && !data.optString("auth_token").isEmpty()) {
+                    ReportSuccess(data);
+                } else {
+                    ReportError(500, "Invalid login response");
+                }
+
             } else {
                 ReportError(403, "Invalid login credentials");
             }
         } catch (JSONException e) {
             e.printStackTrace();
-        }*/
+        }
     }
 }
 
@@ -154,145 +166,89 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
 
     @Override
     protected List<Order> doInBackground(Object... a) {
-        if (_params.length < 2)
+        if (_params.length < 4)
             return null;
 
         String userName = (String) _params[0];
         List<Meeting> meetingList = (List<Meeting>) _params[1];
 
+        // Orders already in cache
+        List<Order> existingOrders = new ArrayList<Order>();
+
         // Determine which orders need to be retrieved
-        List<String> orderIdsToRetrive = new ArrayList<String>();
+        String orderIdsToRetrieve = "";
         Map<String, Order> ordersInCache = App.StorageManager().Orders().getAll();
+
+        for (String orderId : ordersInCache.keySet()) {
+            Boolean meetingRequired = false;
+            for (Meeting meeting : meetingList) {
+                if (orderId.equals(meeting.OrderID)) {
+                    meetingRequired = true;
+                    break;
+                }
+            }
+
+            if (!meetingRequired) {
+                App.StorageManager().Orders().remove(orderId);
+            }
+        }
 
         for (Meeting meeting : meetingList) {
             Order cachedOrder = ordersInCache.get(meeting.OrderID);
+            existingOrders.add(cachedOrder);
+
             if (cachedOrder == null || !cachedOrder.Version().equals(meeting.OrderVersion)) {
-                orderIdsToRetrive.add(meeting.OrderID);
+                orderIdsToRetrieve += meeting.OrderID + "-" + meeting.OrderVersion + "--";
             }
         }
 
         // Make request to retrieve orders
         List<Order> newOrders = new ArrayList<Order>();
-        String response = "[" +
-                "{\"OrderUID\": \"1015-01\"," +
-                "\"Price_goods\": 12.34, " +
-                "\"Price_delivery\": 3.98," +
-                "\"Price_comment\": \"paid by credit card\", " +
-                "\"number_goods\": 5," +
-                "\"Pickup-Address\": {" +
-                "\"Name\": \"Gaststätte Wohnzimmer\"," +
-                "\"Company\": \"\", " +
-                "\"Street\": \"Schloßstr. 77b\", " +
-                "\"ZIP\": \"70176\"," +
-                "\"Instructions\": \"Please call when arriving, the bell is broken\"," +
-                "\"Notes\": \"Cheeseburger without Tomatoes please\"," +
-                "\"Phone\": \"+49 175 5234632\"," +
-                "\"Mail\": \"\"," +
-                "\"DrpStatus\": \"pending\"" +
-                "}," +
-                "" +
-                "\"Delivery-Address\": {" +
-                "\"Name\": \"Matthias Brunner\"," +
-                "\"Company\": \"Logistics Start-up\"," +
-                "\"Street\": \"Böblinger Str. 43\"," +
-                "\"ZIP\": \"70196\"," +
-                "\"Instructions\": \"a\nb\nc\nd\ne\nf\"," +
-                "\"Notes\":\"\"," +
-                "\"Phone\": \"0176 8046 8925\"," +
-                "\"Mail\": \"mbrunner@bringx.com\"," +
-                "\"DrpStatus\": \"pending\"," +
-                "\"Coordinates\": \"42.94321, 9.813242\"" +
-                "}," +
-                "\"Cargo\": " +
-                "[" +
-                "{" +
-                "\"count\": 6," +
-                "\"price\": 5.35," +
-                "\"title\": \"Beck beer\"," +
-                "\"size\":  \"\"," +
-                "\"weight\": \"\", " +
-                "\"info\": \"\"" +
-                "}," +
-                "{" +
-                "\"count\": 1," +
-                "\"price\": 12.56," +
-                "\"title\": \"spare ribs with french fries\"" +
-                "}" +
-                "]" +
-                "}," +
-                "{\"OrderUID\": \"1014-01\"," +
-                "\"Price_goods\": 12.34, " +
-                "\"Price_delivery\": 3.98," +
-                "\"Price_comment\": \"paid by credit card\"," +
-                "\"number_goods\": 5,   " +
-                "" +
-                "\"Pickup-Address\": {" +
-                "\"Name\": \"Gaststätte Wohnzimmer\"," +
-                "\"Company\": \"\", " +
-                "\"Street\": \"Schloßstr. 77b\", " +
-                "\"ZIP\": \"70176\"," +
-                "\"Instructions\": \"Please call when arriving, the bell is broken\"," +
-                "\"Notes\": \"Cheeseburger without Tomatoes please\"," +
-                "\"Phone\": \"+49 175 5234632\"," +
-                "\"Mail\": \"\"," +
-                "\"DrpStatus\": \"pending\"" +
-                "}," +
-                "" +
-                "\"Delivery-Address\": {" +
-                "\"Name\": \"Matthias Brunner\"," +
-                "\"Company\": \"Logistics Start-up\"," +
-                "\"Street\": \"Böblinger Str. 43\"," +
-                "\"ZIP\": \"70196\"," +
-                "\"Instructions\": \"\"," +
-                "\"Notes\":\"\"," +
-                "\"Phone\": \"0176 8046 8925\"," +
-                "\"Mail\": \"mbrunner@bringx.com\"," +
-                "\"Coordinates\": \"42.94321, 9.813242\"," +
-                "\"DrpStatus\": \"pending\"" +
-                "}," +
-                "" +
-                "\"Cargo\": " +
-                "[" +
-                "{" +
-                "\"count\": 6," +
-                "\"price\": 5.35," +
-                "\"title\": \"Beck beer\"," +
-                "\"size\":  \"\"," +
-                "\"weight\": \"\", " +
-                "\"info\": \"\"" +
-                "}," +
-                "{" +
-                "\"count\": 1," +
-                "\"price\": 12.56," +
-                "\"title\": \"spare ribs with french fries\"" +
-                "}" +
-                "]" +
-                "}]" +
-                "";
-        try {
-            JSONArray resp = new JSONArray(response);
-            for (int i = 0; i < resp.length(); i++) {
-                Order newOrder = new Order(resp.getJSONObject(i));
-                newOrder.DeliveryAddress().Status("pending");
-                newOrders.add(newOrder);
+
+        if (!orderIdsToRetrieve.isEmpty()) {
+            orderIdsToRetrieve = orderIdsToRetrieve.substring(0, orderIdsToRetrieve.length() - 2);
+
+            try {
+                String url = String.format(URLS.OrdersInfo, _params[2], orderIdsToRetrieve, _params[3]);
+                String response = App.Requester().GET(url, null);
+
+                if (response.contains("status")) {
+                    ReportError(500, "Failed to get orders list");
+                    return null;
+                }
+
+                JSONArray resp = new JSONArray(response);
+                for (int i = 0; i < resp.length(); i++) {
+                    try {
+                        Order newOrder = new Order(resp.getJSONObject(i));
+                        newOrder.DeliveryAddress().Status("pending");
+                        newOrders.add(newOrder);
+                    }
+                    catch (JSONException e) {
+                        Log.e("Error parsing order");
+                        e.printStackTrace();
+                    }
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+                ReportError(500, e.getLocalizedMessage());
+                return null;
+            } catch (Exception e) {
+                e.printStackTrace();
+                ReportError(500, e.getLocalizedMessage());
+                return null;
             }
 
-        } catch (JSONException e) {
-            e.printStackTrace();
-            ReportError(500, e.getLocalizedMessage());
-            return null;
-        } catch (Exception e) {
-            e.printStackTrace();
-            ReportError(500, e.getLocalizedMessage());
-            return null;
+            // Save new Orders
+            for (Order newOrder : newOrders) {
+                App.StorageManager().Orders().setString(newOrder.Id(), newOrder.toString());
+
+                existingOrders.add(newOrder);
+            }
         }
 
-        // Save new Orders
-        for (Order newOrder : newOrders) {
-            App.StorageManager().Orders().setString(newOrder.Id(), newOrder.toString());
-        }
-
-        return newOrders;
+        return existingOrders;
     }
 
     @Override
@@ -302,11 +258,7 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
             return;
         }
 
-        if (ordersList.size() > 0) {
-            ReportSuccess(ordersList);
-        } else {
-            ReportError(1, "No orders");
-        }
+        ReportSuccess(ordersList);
     }
 }
 
@@ -317,9 +269,15 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
     }
 
     public List<Meeting> OnMeetingsListReceived(String meetingsListPayload) {
+        // In case we get JSON response
+        meetingsListPayload = meetingsListPayload.replaceAll("\\]", "").replaceAll("\\[", "").replaceAll("\"", "");
+
         String[] tokens = meetingsListPayload.split(",");
 
         List<Meeting> meetingList = new ArrayList<Meeting>();
+
+        if (meetingsListPayload.isEmpty())
+            return meetingList;
 
         for (int i = 0; i < tokens.length; i += 3) {
             String orderCompStr = tokens[i].trim();
@@ -360,30 +318,25 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
 
     @Override
     protected List<Meeting> doInBackground(String... a) {
-        if (_params.length != 1) {
+        if (_params.length != 3) {
             return null;
         }
 
         String meetingsListPayload = "";
 
-        Log.d("Performing GetMeetingsList for: " + _params[0] + " on device: " + App.DeviceManager().DeviceId());
+        Log.d("Performing GetMeetingsList for: " + _params[0] + " on device: " + App.DeviceManager().DeviceId() + " uid:" + _params[1] + " auth:" + _params[2]);
 
-        try {
-            if (App.DeviceManager().IsNetworkAvailable() == false) {
-                meetingsListPayload = App.StorageManager().Setting().getString(SettingsStorage.LAST_MEETINGS_ORDER);
-            } else {
-                JSONObject jsonParams = new JSONObject();
-                jsonParams.put("mobileid", App.DeviceManager().DeviceId());
+        if (App.DeviceManager().IsNetworkAvailable() == false) {
+            meetingsListPayload = App.StorageManager().Setting().getString(SettingsStorage.LAST_MEETINGS_ORDER);
+        } else {
+            String url = String.format(URLS.OrdersETA, _params[1], _params[2]);
 
-                //meetingsListPayload = App.Requester().POST(URLS.JobsURL, jsonParams);
-                Thread.sleep(2000, 0);
-                meetingsListPayload = "1015-01,1429172461,1429172471,1014-01,,1429172961";
+            meetingsListPayload = App.Requester().GET(url, null);
+
+            // If we get a formatted JSON response with status code then fail
+            if (meetingsListPayload.contains("status")) {
+                ReportError(500, "Failed to get meetings list");
             }
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
 
         return OnMeetingsListReceived(meetingsListPayload);
@@ -396,11 +349,7 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
             return;
         }
 
-        if (meetingsList.size() > 0) {
-            ReportSuccess(meetingsList);
-        } else {
-            ReportError(1, "No meetings");
-        }
+        ReportSuccess(meetingsList);
     }
 }
 
@@ -429,12 +378,9 @@ class MeetingStatusTask extends AsyncTaskReport<String, Void, Boolean> {
             JSONObject jsonParams = new JSONObject();
             jsonObj = new JSONObject(App.Requester().POST(URLS.StatusURL, jsonParams));
 
-            Thread.sleep(2000, 0);
             return true;
 
         } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -456,6 +402,52 @@ class MeetingStatusTask extends AsyncTaskReport<String, Void, Boolean> {
     }
 }
 
+class UpdatePositionTask extends AsyncTaskReport<Object, Void, Boolean> {
+
+    public UpdatePositionTask(IStatusHandler statusHandler, Object... p) {
+        super(statusHandler, p);
+    }
+
+    @Override
+    protected Boolean doInBackground(Object... params) {
+        if (_params.length != 4) {
+            return false;
+        }
+
+        JSONObject jsonObj = null;
+
+        Log.d("Performing position update (" + _params[0] + "," + _params[1] + ") for uid: " + _params[2] + " on device: " + App.DeviceManager().DeviceId());
+
+        try {
+            JSONObject jsonParams = new JSONObject();
+
+            jsonParams.put("latitude", (double) _params[0]);
+            jsonParams.put("longitude", (double) _params[1]);
+            jsonParams.put("uid", (String) _params[2]);
+            jsonParams.put("mobileid", (String) App.DeviceManager().DeviceId());
+            jsonParams.put("ts_pos", (long) _params[3]);
+
+            String url = String.format(URLS.PositionUpdateURL, _params[2]);
+            jsonObj = new JSONObject(App.Requester().POST(url, jsonParams));
+
+            return true;
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
+    protected void onPostExecute(Boolean result) {
+        if (result == true) {
+            ReportSuccess(true);
+        } else {
+            ReportError(500, "Position update failed");
+        }
+    }
+}
 
 class DataUtils {
     public static final String md5(final String s) {

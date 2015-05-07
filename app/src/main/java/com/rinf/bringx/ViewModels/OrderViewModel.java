@@ -7,6 +7,7 @@ import com.rinf.bringx.Model.Order;
 import com.rinf.bringx.utils.StringAppender;
 
 import java.security.InvalidParameterException;
+import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -34,6 +35,8 @@ public class OrderViewModel {
 
     private Address _address;
     private Address _altAddress;
+
+    private DecimalFormat _df = new DecimalFormat("#.00");
 
     public Address CurrentDestination() {
         return _address;
@@ -106,6 +109,9 @@ public class OrderViewModel {
                 cargo += item.Count() + "x " + item.Title() + "\n";
                 cargoItemsPrice += (item.Count() * item.Price());
             }
+
+            if (!cargo.isEmpty())
+                cargo = cargo.substring(0, cargo.length() -1);
         }
 
         Details.set(_order.NumberGoods() + " goods\n" + cargo);
@@ -113,7 +119,7 @@ public class OrderViewModel {
         String pay = "";
         Double priceGoods = (modelData.PriceGoods() != Double.NaN ? modelData.PriceGoods() : cargoItemsPrice);
 
-        pay += "Total: " + (priceGoods + modelData.PriceDelivery()) + "\nGoods: " + priceGoods + "\nDelivery: " + modelData.PriceDelivery();
+        pay += "Total: " + _df.format(priceGoods + modelData.PriceDelivery()) + "\nGoods: " + _df.format(priceGoods) + "\nDelivery: " + _df.format(modelData.PriceDelivery());
         Pay.set(pay);
 
         String info = _address.Instructions() + (!_address.Notes().isEmpty() ? "\n" +  _address.Notes() : "");

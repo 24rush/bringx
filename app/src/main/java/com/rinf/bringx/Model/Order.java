@@ -9,34 +9,28 @@ import java.util.List;
 
 public class Order {
 
-    public Order(JSONObject parser) {
+    public Order(JSONObject parser) throws JSONException {
         _jsonObj = parser;
 
-        try {
+        // Validates the received object
+        if (Id() == null || Version() == null)
+            throw new JSONException("No Id or Version found");
 
-            // Validates the received object
-            if (Id() == null || Version() == null)
-                throw new JSONException("No Id or Version found");
-
-            PriceGoods();
-            if (PriceDelivery() == null) {
-                throw new JSONException("Price of delivery not found");
-            }
-
-            PriceComment();
-
-            if (NumberGoods() == null)
-                throw new JSONException("Pickup or Delivery not found");
-
-            if (PickupAddress() == null || DeliveryAddress() == null)
-                throw new JSONException("Pickup or Delivery not found");
-
-            if (Cargo() == null)
-                throw new JSONException("Cargo not found");
-
-        } catch (JSONException e) {
-            e.printStackTrace();
+        PriceGoods();
+        if (PriceDelivery() == null) {
+            throw new JSONException("Price of delivery not found");
         }
+
+        PriceComment();
+
+        if (NumberGoods() == null)
+            throw new JSONException("Pickup or Delivery not found");
+
+        if (PickupAddress() == null || DeliveryAddress() == null)
+            throw new JSONException("Pickup or Delivery not found");
+
+        if (Cargo() == null)
+            throw new JSONException("Cargo not found");
     }
 
     private JSONObject _jsonObj;
@@ -52,7 +46,7 @@ public class Order {
 
     public String Id() {
         try {
-            return _jsonObj.getString("OrderUID").split("-")[0];
+            return _jsonObj.getString("order_uid").split("-")[0];
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -61,7 +55,7 @@ public class Order {
 
     public String Version() {
         try {
-            return _jsonObj.getString("OrderUID").split("-")[1];
+            return _jsonObj.getString("order_uid").split("-")[1];
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -69,12 +63,12 @@ public class Order {
     }
 
     public Double PriceGoods() {
-        return _jsonObj.optDouble("Price_goods");
+        return _jsonObj.optDouble("price_goods");
     }
 
     public Double PriceDelivery() {
         try {
-            return _jsonObj.getDouble("Price_delivery");
+            return _jsonObj.getDouble("price_delivery");
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -82,12 +76,12 @@ public class Order {
     }
 
     public String PriceComment() {
-        return _jsonObj.optString("Price_comment");
+        return _jsonObj.optString("price_comment");
     }
 
     public Integer NumberGoods() {
         try {
-            return _jsonObj.getInt("number_goods");
+            return _jsonObj.getInt("item_type_count");
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -100,7 +94,7 @@ public class Order {
 
         JSONObject pickupAddressObj = null;
         try {
-            pickupAddressObj = _jsonObj.getJSONObject("Pickup-Address");
+            pickupAddressObj = _jsonObj.getJSONObject("pickup_address");
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -116,7 +110,7 @@ public class Order {
 
         JSONObject deliveryAddressObj = null;
         try {
-            deliveryAddressObj = _jsonObj.getJSONObject("Delivery-Address");
+            deliveryAddressObj = _jsonObj.getJSONObject("delivery_address");
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -134,7 +128,7 @@ public class Order {
         JSONArray cargo = null;
 
         try {
-            cargo = _jsonObj.getJSONArray("Cargo");
+            cargo = _jsonObj.getJSONArray("cargo");
 
             for (int i = 0; i < cargo.length(); i++) {
                 if (_cargo == null)
