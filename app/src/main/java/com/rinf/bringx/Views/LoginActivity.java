@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.Ringtone;
@@ -91,11 +93,18 @@ class ExpandableControl {
         _expanderOpen.setVisibility(View.GONE);
 
         Log.d("lines = " + currentLines + " " + _defaultLines);
+        // If the control has more than one line that show arrow
         if (currentLines > _defaultLines) {
             _expanderRound.setVisibility(View.GONE);
-            _expanderOpen.setVisibility(View.GONE);
 
-            _expanderClose.setVisibility(View.VISIBLE);
+            if (view.getMaxLines() > _defaultLines) {
+                _expanderOpen.setVisibility(View.VISIBLE);
+                _expanderClose.setVisibility(View.GONE);
+            }
+            else {
+                _expanderOpen.setVisibility(View.GONE);
+                _expanderClose.setVisibility(View.VISIBLE);
+            }
         }
     }
 
@@ -120,15 +129,20 @@ class ExpandableControl {
     }
 
     public void ToggleExpand() {
+        if (_control.getLineCount() == 1)
+            return;
+
         Log.d("max line" + _control.getMaxLines() + "d " + _defaultLines + " " + _expandedLines);
         if (_control.getMaxLines() == _defaultLines) {
             _control.setMaxLines(_expandedLines);
 
+            _expanderRound.setVisibility(View.GONE);
             _expanderOpen.setVisibility(View.VISIBLE);
             _expanderClose.setVisibility(View.GONE);
         } else {
             _control.setMaxLines(_defaultLines);
 
+            _expanderRound.setVisibility(View.GONE);
             _expanderOpen.setVisibility(View.GONE);
             _expanderClose.setVisibility(View.VISIBLE);
         }
@@ -178,6 +192,7 @@ public class LoginActivity extends ActionBarActivity {
         setContentView(R.layout.activity_login);
 
         ActionBar actionBar = getSupportActionBar();
+        actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#53284f")));
         actionBar.setCustomView(R.layout.custom_action_bar);
         actionBar.setDisplayShowTitleEnabled(false);
         actionBar.setDisplayShowCustomEnabled(true);
@@ -288,7 +303,8 @@ public class LoginActivity extends ActionBarActivity {
     }
 
     private void createBindingsForMeetingsList() {
-        Bindings.BindText(Controls.get(R.id.value_meeting_eta), VM.MeetingsViewModel.CurrentMeeting.ETA);
+        Bindings.BindText(Controls.get(R.id.value_meeting_eta_hours), VM.MeetingsViewModel.CurrentMeeting.ETAHours);
+        Bindings.BindText(Controls.get(R.id.value_meeting_eta_date), VM.MeetingsViewModel.CurrentMeeting.ETADate);
         Bindings.BindText(Controls.get(R.id.value_meeting_destination), VM.MeetingsViewModel.CurrentMeeting.Name);
         Bindings.BindText(Controls.get(R.id.value_meeting_address), VM.MeetingsViewModel.CurrentMeeting.Address);
         Bindings.BindText(Controls.get(R.id.value_meeting_details), VM.MeetingsViewModel.CurrentMeeting.Details);
@@ -329,6 +345,7 @@ public class LoginActivity extends ActionBarActivity {
 
         Bindings.BindCommand(Controls.get(R.id.value_meeting_address), onClickAddressName, VM.MeetingsViewModel.CurrentMeeting);
 
+        _expandableControls.clear();
         _expandableControls.add((new ExpandableControl(Controls.get(R.id.value_meeting_details), 1, 4))
                 .setExpanderRound(Controls.get(R.id.expander_round_meeting_details))
                 .setExpanderClose(Controls.get(R.id.expander_close_meeting_details))
@@ -352,6 +369,11 @@ public class LoginActivity extends ActionBarActivity {
 
                 for (ExpandableControl exp : _expandableControls) {
                     exp.ResetExpand();
+                }
+
+                // !!!WKA: Expand details in meeting mode screen
+                if (VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode.get() == true) {
+                    _expandableControls.get(0).ToggleExpand();
                 }
 
                 Log.d("line count: " + ((TextView) Controls.get(R.id.value_meeting_info)).getLineCount());
@@ -412,7 +434,7 @@ public class LoginActivity extends ActionBarActivity {
 
         // Next
         Bindings.BindVisible(Controls.get(R.id.layout_row_next), VM.MeetingsViewModel.CurrentMeeting.IsDrivingMode);
-        Bindings.BindText(Controls.get(R.id.value_meeting_next), VM.MeetingsViewModel.NextMeeting.Name);
+        Bindings.BindText(Controls.get(R.id.value_meeting_next), VM.MeetingsViewModel.NextMeeting.Address);
         Bindings.BindCommand(Controls.get(R.id.value_meeting_next), onClickAddressName, VM.MeetingsViewModel.NextMeeting);
 
         // From/To

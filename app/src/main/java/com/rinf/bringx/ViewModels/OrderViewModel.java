@@ -16,12 +16,13 @@ public class OrderViewModel {
     private MeetingType _type;
 
     public String ParentOrderId = "";
-    public Observable<String> ETA = new Observable<String>();
-    public Observable<String> Name = new Observable<String>();
-    public Observable<String> Address = new Observable<String>();
-    public Observable<String> Details = new Observable<String>();
+    public Observable<String> ETAHours = new Observable<String>("");
+    public Observable<String> ETADate = new Observable<String>("");
+    public Observable<String> Name = new Observable<String>("");
+    public Observable<String> Address = new Observable<String>("");
+    public Observable<String> Details = new Observable<String>("");
 
-    public Observable<String> Instructions = new Observable<String>();
+    public Observable<String> Instructions = new Observable<String>("");
 
     public Observable<String> FromTo = new Observable<String>("");
     public Observable<String> Pay = new Observable<String>("");
@@ -63,7 +64,8 @@ public class OrderViewModel {
         _cargo = other._cargo;
 
         ParentOrderId = other.ParentOrderId;
-        ETA.set(other.ETA.get());
+        ETAHours.set(other.ETAHours.get());
+        ETADate.set(other.ETADate.get());
         Address.set(other.Address.get());
         Name.set(other.Name.get());
         Details.set(other.Details.get());
@@ -89,7 +91,8 @@ public class OrderViewModel {
 
         ParentOrderId = orderId;
 
-        ETA.set(android.text.format.DateFormat.format("hh:mm - dd.MM.yyyy", eta) + " - " + ParentOrderId);
+        ETAHours.set(android.text.format.DateFormat.format("hh:mm", eta) + "");
+        ETADate.set(android.text.format.DateFormat.format(" - dd.MM.yyyy", eta) + " - " + ParentOrderId);
 
         String strAddress = "";
         strAddress = StringAppender.AppendIfFilled(strAddress, _address.Company(), _address.Street(), _address.Zip());

@@ -23,6 +23,6 @@ public class Meeting {
 
     @Override
     public String toString() {
-        return OrderID + "-" + OrderVersion + "," + (ETAPickup == null ? "" : ETAPickup.getTime()) + "," + (ETADelivery == null ? "" : ETADelivery.getTime());
+        return OrderID + "-" + OrderVersion + "," + (ETAPickup == null ? "" : ETAPickup.getTime() / 1000) + "," + (ETADelivery == null ? "" : ETADelivery.getTime() / 1000);
     }
 }
