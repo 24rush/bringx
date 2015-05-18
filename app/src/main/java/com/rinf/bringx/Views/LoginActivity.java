@@ -23,6 +23,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -190,6 +191,7 @@ public class LoginActivity extends ActionBarActivity {
         Log.d("onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#53284f")));
@@ -375,8 +377,6 @@ public class LoginActivity extends ActionBarActivity {
                 if (VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode.get() == true) {
                     _expandableControls.get(0).ToggleExpand();
                 }
-
-                Log.d("line count: " + ((TextView) Controls.get(R.id.value_meeting_info)).getLineCount());
             }
         }, null);
 
@@ -586,8 +586,7 @@ public class LoginActivity extends ActionBarActivity {
                 showOKCancelDialog(R.string.msg_rejected_customer, new INotifier<String>() {
                     @Override
                     public void OnValueChanged(String value) {
-                        VM.MeetingsViewModel.CurrentMeeting.ReasonRejected.set(value);
-                        VM.MeetingsViewModel.CurrentMeeting.SetStatus(MEETING_STATUS.REJECTED_CUSTOMER);
+                        VM.MeetingsViewModel.CurrentMeeting.Reject(value);
                     }
                 }, R.layout.rejected_form_layout);
 
@@ -598,8 +597,7 @@ public class LoginActivity extends ActionBarActivity {
                 showOKCancelDialog(R.string.msg_rejected_customer, new INotifier<String>() {
                     @Override
                     public void OnValueChanged(String value) {
-                        VM.MeetingsViewModel.CurrentMeeting.ReasonRejected.set(value);
-                        VM.MeetingsViewModel.CurrentMeeting.SetStatus(MEETING_STATUS.REJECTED_DRIVER);
+                        VM.MeetingsViewModel.CurrentMeeting.Fail(value);
                     }
                 }, R.layout.rejected_form_layout);
 

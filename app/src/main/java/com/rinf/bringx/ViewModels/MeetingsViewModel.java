@@ -121,10 +121,10 @@ public class MeetingsViewModel {
                             Order order = response.get(i);
 
                             // Validate finalized Meetings
-                            if (orderedJob.Type == MeetingType.Delivery && order.DeliveryAddress().Status() == "delivery-success")
+                            if (orderedJob.Type == MeetingType.Delivery && order.DeliveryAddress().Status() == "delivery-done")
                                 continue;
 
-                            if (orderedJob.Type == MeetingType.Pickup && order.PickupAddress().Status() == "loaded")
+                            if (orderedJob.Type == MeetingType.Pickup && order.PickupAddress().Status() == "pickup-done")
                                 continue;
 
                             if (order.Id().equals(orderedJob.OrderId) && order.Version().equals(orderedJob.OrderVersion)) {
@@ -185,16 +185,29 @@ public class MeetingsViewModel {
                 };
 
                 ServiceProxy proxy = new ServiceProxy(statusHandler);
-                proxy.SetMeetingStatus(VM.LoginViewModel.UserName.get(), CurrentMeeting.ParentOrderId, OrderViewModel.mapStatus(value), CurrentMeeting.ReasonRejected.get());
+                proxy.SetMeetingStatus(CurrentMeeting.ParentOrderId + "-" + CurrentMeeting.ParentOrderVersion, OrderViewModel.mapStatus(value),
+                        CurrentMeeting.ReasonRejected.get(), VM.LoginViewModel.DriverId.get(), VM.LoginViewModel.AuthToken.get());
 
                 Log.d("Setting status " + value + " to " + CurrentMeeting.ParentOrderId);
                 App.StorageManager().Orders().setString(CurrentMeeting.ParentOrderId, CurrentMeeting.ModelData().toString());
 
-                if (value == MEETING_STATUS.LOADED || value == MEETING_STATUS.DELIVERY_DONE) {
+                if (value == MEETING_STATUS.PICKUP_DRIVING || value == MEETING_STATUS.DELIVERY_DRIVING) {
+                    // Check to see if driver is at the same address
+                    String currentAddress = CurrentMeeting.Address.get();
+                    String nextAddress = NextMeeting.Address.get();
+
+                    if (currentAddress.equals(nextAddress)) {
+                        CurrentMeeting.AdvanceOrderStatus();
+                        return;
+                    }
+                }
+
+                if (value == MEETING_STATUS.PICKUP_DONE || value == MEETING_STATUS.DELIVERY_DONE) {
                     loadCurrentAndNextMeetings(true);
                 }
 
-                if (value == MEETING_STATUS.REJECTED_CUSTOMER || value == MEETING_STATUS.REJECTED_DRIVER) {
+                if (value == MEETING_STATUS.PICKUP_REJECTED || value == MEETING_STATUS.PICKUP_FAILED ||
+                        value == MEETING_STATUS.DELIVERY_REJECTED || value == MEETING_STATUS.DELIVERY_FAILED) {
                     for (OrderViewModel order : OrdersList) {
                         if (order.ParentOrderId.equals(CurrentMeeting.ParentOrderId)) {
                             order.SetStatus(value);
@@ -207,11 +220,11 @@ public class MeetingsViewModel {
                 }
 
                 Localization locals = new Localization(App.Context());
-                if (value == MEETING_STATUS.PICK_DRIVING || value == MEETING_STATUS.DELIVERY_DRIVING)
+                if (value == MEETING_STATUS.PICKUP_DRIVING || value == MEETING_STATUS.DELIVERY_DRIVING)
                     StatusButton.set(locals.getText(R.string.lbl_btn_arrived));
-                else if (value == MEETING_STATUS.PICK_MEETING) {
+                else if (value == MEETING_STATUS.PICKUP_ARRIVED) {
                     StatusButton.set(locals.getText(R.string.lbl_btn_loaded));
-                } else if (value == MEETING_STATUS.DELIVERY_MEETING) {
+                } else if (value == MEETING_STATUS.DELIVERY_ARRIVED) {
                     StatusButton.set(locals.getText(R.string.lbl_btn_done));
                 }
             }
@@ -245,7 +258,7 @@ public class MeetingsViewModel {
                 for (String pair : pairs) {
                     String[] kv = pair.split(",");
 
-                    sp.SetMeetingStatus(VM.LoginViewModel.UserName.get(), kv[0], kv[1], "");
+                    sp.SetMeetingStatus(kv[0], kv[1], "", VM.LoginViewModel.DriverId.get(), VM.LoginViewModel.AuthToken.get());
                 }
             }
         } else

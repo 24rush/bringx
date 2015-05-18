@@ -16,6 +16,8 @@ public class OrderViewModel {
     private MeetingType _type;
 
     public String ParentOrderId = "";
+    public String ParentOrderVersion = "";
+
     public Observable<String> ETAHours = new Observable<String>("");
     public Observable<String> ETADate = new Observable<String>("");
     public Observable<String> Name = new Observable<String>("");
@@ -54,7 +56,20 @@ public class OrderViewModel {
     }
 
     public OrderViewModel(OrderedMeeting job, Order modelData) {
-        buildObject(job.Type, job.ETA, job.OrderId, modelData);
+        buildObject(job.Type, job.ETA, job.OrderId, job.OrderVersion, modelData);
+    }
+
+    public void Reset() {
+        ParentOrderId = "";
+        ParentOrderVersion = "";
+        ETAHours.set("");
+        ETADate.set("");
+        Address.set("");
+        Name.set("");
+        Details.set("");
+        Instructions.set("");
+        FromTo.set("");
+        Pay.set("");
     }
 
     public void PreLoad(OrderViewModel other) {
@@ -64,6 +79,8 @@ public class OrderViewModel {
         _cargo = other._cargo;
 
         ParentOrderId = other.ParentOrderId;
+        ParentOrderVersion = other.ParentOrderVersion;
+
         ETAHours.set(other.ETAHours.get());
         ETADate.set(other.ETADate.get());
         Address.set(other.Address.get());
@@ -78,18 +95,19 @@ public class OrderViewModel {
         PreLoad(other);
 
         // Order is displayed
-        OnStatusChanged.set(_type == MeetingType.Pickup ? MEETING_STATUS.PICK_DRIVING : MEETING_STATUS.DELIVERY_DRIVING);
+        OnStatusChanged.set(_type == MeetingType.Pickup ? MEETING_STATUS.PICKUP_DRIVING : MEETING_STATUS.DELIVERY_DRIVING);
         IsMeetingMode.set(false);
         IsDrivingMode.set(true);
     }
 
-    private void buildObject(MeetingType type, Date eta, String orderId, Order modelData) {
+    private void buildObject(MeetingType type, Date eta, String orderId, String orderVersion, Order modelData) {
         _order = modelData;
         _type = type;
 
         _address = _type == MeetingType.Delivery ? modelData.DeliveryAddress() : modelData.PickupAddress();
 
         ParentOrderId = orderId;
+        ParentOrderVersion = orderVersion;
 
         ETAHours.set(android.text.format.DateFormat.format("hh:mm", eta) + "");
         ETADate.set(android.text.format.DateFormat.format(" - dd.MM.yyyy", eta) + " - " + ParentOrderId);
@@ -126,30 +144,30 @@ public class OrderViewModel {
         Pay.set(pay);
 
         String info = _address.Instructions() + (!_address.Notes().isEmpty() ? "\n" +  _address.Notes() : "");
-        Instructions.set(!info.equals("\n") ? info : "--");
+        Instructions.set(!info.isEmpty() ? info : "--");
     }
 
     public void AdvanceOrderStatus() {
         MEETING_STATUS currentStatus = OnStatusChanged.get();
 
         switch (currentStatus) {
-            case PICK_DRIVING:
-                currentStatus = MEETING_STATUS.PICK_MEETING;
+            case PICKUP_DRIVING:
+                currentStatus = MEETING_STATUS.PICKUP_ARRIVED;
                 IsMeetingMode.set(true);
                 IsDrivingMode.set(false);
                 break;
 
-            case PICK_MEETING:
-                currentStatus = MEETING_STATUS.LOADED;
+            case PICKUP_ARRIVED:
+                currentStatus = MEETING_STATUS.PICKUP_DONE;
                 break;
 
             case DELIVERY_DRIVING:
-                currentStatus = MEETING_STATUS.DELIVERY_MEETING;
+                currentStatus = MEETING_STATUS.DELIVERY_ARRIVED;
                 IsMeetingMode.set(true);
                 IsDrivingMode.set(false);
                 break;
 
-            case DELIVERY_MEETING:
+            case DELIVERY_ARRIVED:
                 currentStatus = MEETING_STATUS.DELIVERY_DONE;
                 break;
         }
@@ -170,25 +188,47 @@ public class OrderViewModel {
     public static String mapStatus(MEETING_STATUS status) {
         switch (status){
             case DELIVERY_DONE:
-                return "delivery-success";
+                return "delivery-done";
             case DELIVERY_DRIVING:
                 return "delivery-driving";
-            case DELIVERY_MEETING:
-                return "delivery-meeting";
-            case LOADED:
-                return "loaded";
+            case DELIVERY_ARRIVED:
+                return "delivery-arrived";
+            case PICKUP_DONE:
+                return "pickup-done";
             case PENDING:
                 return "pending";
-            case PICK_DRIVING:
-                return "pick-driving";
-            case PICK_MEETING:
-                return "pick-meeting";
-            case REJECTED_CUSTOMER:
-                return "rejected";
-            case REJECTED_DRIVER:
-                return "failed";
+            case PICKUP_DRIVING:
+                return "pickup-driving";
+            case PICKUP_ARRIVED:
+                return "pickup-arrived";
+            case PICKUP_REJECTED:
+                return "pickup-rejected";
+            case PICKUP_FAILED:
+                return "pickup-failed";
+            case DELIVERY_REJECTED:
+                return "delivery-rejected";
+            case DELIVERY_FAILED:
+                return "delivery-failed";
             default:
                 return null;
         }
+    }
+
+    public void Fail(String value) {
+        ReasonRejected.set(value);
+
+        if (_type == MeetingType.Delivery)
+            SetStatus(MEETING_STATUS.DELIVERY_REJECTED);
+        else
+            SetStatus(MEETING_STATUS.PICKUP_REJECTED);
+    }
+
+    public void Reject(String value) {
+        ReasonRejected.set(value);
+
+        if (_type == MeetingType.Delivery)
+            SetStatus(MEETING_STATUS.DELIVERY_FAILED);
+        else
+            SetStatus(MEETING_STATUS.PICKUP_FAILED);
     }
 }

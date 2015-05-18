@@ -16,6 +16,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -24,7 +25,7 @@ class URLS {
     public static String LoginURL = "http://dev-auftrag.bringx.com/json/login/1";
     public static String OrdersETA = "http://dev-auftrag.bringx.com/json/drivers/%s/orders-eta?auth_token=%s&version=1.0.1";
     public static String OrdersInfo = "http://dev-auftrag.bringx.com/json/drivers/%s/orders/%s?auth_token=%s&version=1.0.1";
-    public static String StatusURL = "http://dev-auftrag.bringx.com/json/drp/";
+    public static String StatusURL = "http://dev-auftrag.bringx.com/json/drivers/%s/orders/%s/status?auth_token=%s&version=1.0.1";
     public static String PositionUpdateURL = "http://dev-auftrag.bringx.com/json/driver/%s";
 }
 
@@ -40,6 +41,15 @@ public class ServiceProxy {
     }
 
     public void Login(String userName, String password) {
+        if (checkConnection() == false) {
+            if (_statusHandler != null) {
+                String[] params = { userName, password };
+                _statusHandler.OnError(new Error(0, "No Internet Connection"), params);
+            }
+
+            return;
+        }
+
         UserLoginTask loginTask = new UserLoginTask(_statusHandler, userName, password);
         loginTask.execute();
     }
@@ -59,15 +69,15 @@ public class ServiceProxy {
         updatePositionTask.execute();
     }
 
-    public void SetMeetingStatus(String userName, String orderId, String status, String rejectedReason) {
+    public void SetMeetingStatus(String orderId, String status, String rejectedReason, String driverId, String authToken) {
         if (checkConnection() == false) {
             if (_statusHandler != null)
-                _statusHandler.OnError(new Error(0, "No Internet Connection"), userName, orderId, status, rejectedReason);
+                _statusHandler.OnError(new Error(0, "No Internet Connection"), orderId, status, rejectedReason, driverId, authToken);
 
             return;
         }
 
-        MeetingStatusTask meetingStatusTask = new MeetingStatusTask(_statusHandler, userName, orderId, status, rejectedReason);
+        MeetingStatusTask meetingStatusTask = new MeetingStatusTask(_statusHandler, orderId, status, rejectedReason, driverId, authToken);
         meetingStatusTask.execute();
     }
 }
@@ -173,7 +183,7 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
         List<Meeting> meetingList = (List<Meeting>) _params[1];
 
         // Orders already in cache
-        List<Order> existingOrders = new ArrayList<Order>();
+        List<Order> existingOrders = new LinkedList<Order>();
 
         // Determine which orders need to be retrieved
         String orderIdsToRetrieve = "";
@@ -195,15 +205,16 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
 
         for (Meeting meeting : meetingList) {
             Order cachedOrder = ordersInCache.get(meeting.OrderID);
-            existingOrders.add(cachedOrder);
 
             if (cachedOrder == null || !cachedOrder.Version().equals(meeting.OrderVersion)) {
                 orderIdsToRetrieve += meeting.OrderID + "-" + meeting.OrderVersion + "--";
+            } else {
+                existingOrders.add(cachedOrder);
             }
         }
 
         // Make request to retrieve orders
-        List<Order> newOrders = new ArrayList<Order>();
+        List<Order> newOrders = new LinkedList<Order>();
 
         if (!orderIdsToRetrieve.isEmpty()) {
             orderIdsToRetrieve = orderIdsToRetrieve.substring(0, orderIdsToRetrieve.length() - 2);
@@ -211,7 +222,7 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
             try {
                 String url = String.format(URLS.OrdersInfo, _params[2], orderIdsToRetrieve, _params[3]);
                 String response = App.Requester().GET(url, null);
-
+                Log.d("Orders: " + response);
                 if (response.contains("status")) {
                     ReportError(500, "Failed to get orders list");
                     return null;
@@ -222,6 +233,7 @@ class OrdersListTask extends AsyncTaskReport<Object, Void, List<Order>> {
                     try {
                         Order newOrder = new Order(resp.getJSONObject(i));
                         newOrder.DeliveryAddress().Status("pending");
+                        newOrder.PickupAddress().Status("pending");
                         newOrders.add(newOrder);
                     }
                     catch (JSONException e) {
@@ -289,7 +301,7 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
             String orderVersion = arrOrderComp[1];
 
             Date etaPickup = null;
-            if (!etaPickupStr.equals("")) {
+            if (!etaPickupStr.equals("") && !etaPickupStr.equals("false")) {
                 etaPickup = new Date(Long.parseLong(etaPickupStr) * 1000);
             }
 
@@ -364,21 +376,31 @@ class MeetingStatusTask extends AsyncTaskReport<String, Void, Boolean> {
         super.onPreExecute();
     }
 
+    //String orderId, String status, String rejectedReason, String driverId, String authToken
+
     @Override
     protected Boolean doInBackground(String... a) {
-        if (_params.length != 4) {
+        if (_params.length != 5) {
             return false;
         }
 
         JSONObject jsonObj = null;
 
-        Log.d("Performing status update to " + _params[2] + " for order: " + _params[1] + " on device: " + App.DeviceManager().DeviceId());
+        Log.d("Performing status update to " + _params[1] + " for order: " + _params[0] + " on device: " + App.DeviceManager().DeviceId());
 
         try {
             JSONObject jsonParams = new JSONObject();
-            jsonObj = new JSONObject(App.Requester().POST(URLS.StatusURL, jsonParams));
+            jsonParams.put("status", _params[1]);
+            jsonParams.put("status_notes", _params[2].length() > 255 ? _params[2].substring(0, 254) : _params[2]);
 
-            return true;
+            //"http://dev-auftrag.bringx.com//json/drivers/%s/orders/%s/status?auth_token=%s&version=1.0.1";
+            String url = String.format(URLS.StatusURL, _params[3], _params[0], _params[4]);
+            jsonObj = new JSONObject(App.Requester().PUT(url, jsonParams));
+
+            if (jsonObj.optString("status").equals("success"))
+                return true;
+
+            return false;
 
         } catch (JSONException e) {
             e.printStackTrace();

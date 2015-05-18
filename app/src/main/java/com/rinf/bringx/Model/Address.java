@@ -102,7 +102,6 @@ public class Address {
         _status = status;
 
         try {
-            Log.d("update json to" + status);
             _jsonObj.put("DrpStatus", status);
         } catch (JSONException e) {
             e.printStackTrace();

@@ -58,7 +58,7 @@ public class LoginViewModel {
 
         IStatusHandler statusHandler = new IStatusHandler<JSONObject, String>() {
             @Override
-            public void OnError(Error err, String... params) {
+            public void OnError(com.rinf.bringx.utils.Error err, String... params) {
                 IsLoggingIn.set(false);
                 Error = err.Message;
                 IsError.set(true);

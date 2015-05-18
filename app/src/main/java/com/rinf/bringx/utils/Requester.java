@@ -10,6 +10,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
@@ -81,8 +82,47 @@ public class Requester {
         return response;
     }
 
+    public String PUT(String url, JSONObject jsonParams) {
+        Log.d("Making PUT " + "request to " + url + " with " + jsonParams.toString());
+
+        String response = null;
+
+        DefaultHttpClient httpClient = new DefaultHttpClient();
+        HttpConnectionParams.setConnectionTimeout(httpClient.getParams(), 30000);
+
+        HttpEntity httpEntity = null;
+        HttpResponse httpResponse = null;
+
+        String requestParams = jsonParams != null ? jsonParams.toString() : "";
+        AbstractHttpEntity entity = getRequestContent(requestParams);
+
+        try {
+
+            HttpPut httpPut = new HttpPut(url);
+            httpPut.setEntity(entity);
+
+            httpResponse = httpClient.execute(httpPut);
+
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            Log.e("Response code: " + statusCode);
+
+            if (statusCode == 200) {
+                httpEntity = httpResponse.getEntity();
+                response = EntityUtils.toString(httpEntity);
+                Log.d("Request returned: " + response);
+            }
+
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return response;
+    }
+
     public String GET(String url, JSONObject jsonParams) {
-        Log.d("Making GET" + "request to " + url);
+        Log.d("Making GET " + "request to " + url);
 
         String response = null;
 
@@ -105,6 +145,7 @@ public class Requester {
             if (statusCode == 200) {
                 httpEntity = httpResponse.getEntity();
                 response = EntityUtils.toString(httpEntity);
+                Log.d("Get response: " + response);
             }
         } catch (ClientProtocolException e1) {
             e1.printStackTrace();
