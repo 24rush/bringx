@@ -35,7 +35,7 @@ import com.rinf.bringx.EasyBindings.ICommand;
 import com.rinf.bringx.EasyBindings.INotifier;
 import com.rinf.bringx.EasyBindings.Observable;
 import com.rinf.bringx.R;
-import com.rinf.bringx.ViewModels.MEETING_STATUS;
+import com.rinf.bringx.ViewModels.MeetingType;
 import com.rinf.bringx.ViewModels.OrderViewModel;
 import com.rinf.bringx.ViewModels.VM;
 import com.rinf.bringx.service.GPSTracker;
@@ -147,6 +147,11 @@ class ExpandableControl {
             _expanderOpen.setVisibility(View.GONE);
             _expanderClose.setVisibility(View.VISIBLE);
         }
+    }
+
+    public void SetDefaultLines(int maxLines) {
+        _control.setMaxLines(maxLines);
+        _defaultLines = maxLines;
     }
 
     public void ResetExpand() {
@@ -266,7 +271,12 @@ public class LoginActivity extends ActionBarActivity {
                             AlertDialog.Builder alertDialog = new AlertDialog.Builder(LoginActivity.this)
                                     .setTitle(localization.getText(R.string.msg_alert_login_error))
                                     .setMessage(VM.LoginViewModel.Error)
-                                    .setPositiveButton(localization.getText(R.string.btn_ok), null);
+                                    .setPositiveButton(localization.getText(R.string.btn_ok), new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            VM.LoginViewModel.IsError.set(false);
+                                        }
+                                    });
                             alertDialog.show();
                         }
                     }
@@ -334,12 +344,12 @@ public class LoginActivity extends ActionBarActivity {
                 Intent intent = null;
                 String location = "";
 
-                if (context.CurrentDestination().HasCoordinates()) {
+                /*if (context.CurrentDestination().HasCoordinates()) {
                     intent = new Intent(Intent.ACTION_VIEW, Uri.parse(String.format("geo:%s,%s", context.CurrentDestination().Latitude(),
                             context.CurrentDestination().Longitude())));
-                } else {
-                    intent = new Intent(Intent.ACTION_VIEW, Uri.parse(String.format("geo:0,0?q=%s", URLEncoder.encode(context.Address.get()))));
-                }
+                } else {*/
+                intent = new Intent(Intent.ACTION_VIEW, Uri.parse(String.format("geo:0,0?q=%s", URLEncoder.encode(context.Address.get()))));
+
 
                 startActivity(intent);
             }
@@ -373,10 +383,20 @@ public class LoginActivity extends ActionBarActivity {
                     exp.ResetExpand();
                 }
 
+                _expandableControls.get(1).SetDefaultLines(4);
                 // !!!WKA: Expand details in meeting mode screen
                 if (VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode.get() == true) {
+                    _expandableControls.get(1).SetDefaultLines(2);
+
                     _expandableControls.get(0).ToggleExpand();
+                    _expandableControls.get(2).ToggleExpand();
                 }
+
+                TextView fromTo = (TextView) Controls.get(R.id.lbl_meeting_fromTo);
+                if (VM.MeetingsViewModel.CurrentMeeting.Type() == MeetingType.Pickup)
+                    fromTo.setText(localization.getText(R.string.str_meeting_to));
+                else
+                    fromTo.setText(localization.getText(R.string.str_meeting_from));
             }
         }, null);
 
@@ -389,8 +409,6 @@ public class LoginActivity extends ActionBarActivity {
                 Controls.get(R.id.layout_meetings).setVisibility(View.GONE);
                 Controls.get(R.id.lbl_no_more_jobs).setVisibility(View.VISIBLE);
                 invalidateOptionsMenu();
-
-                AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_information_title, R.string.msg_alert_no_jobs_msg, null);
             }
         });
 
@@ -450,22 +468,7 @@ public class LoginActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
         App.OnActivityResumed();
-
         Log.d("onResume");
-
-        if (VM.LoginViewModel.IsLoggedIn.get() == true) {
-            // Start the GPS service even if the providers are OFF and also when app is brought to foreground
-            Intent gpsServiceIntent = new Intent(this, GPSTracker.class);
-            gpsServiceIntent.putExtra("uid", VM.LoginViewModel.DriverId.get());
-            gpsServiceIntent.putExtra("mobileid", App.DeviceManager().DeviceId());
-            startService(gpsServiceIntent);
-
-            if (App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
-                playSoundAndDisplayAlert();
-
-                App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
-            }
-        }
 
         registerReceiver(mConnReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
@@ -539,6 +542,18 @@ public class LoginActivity extends ActionBarActivity {
             showSettingsAlert();
         }
 
+        // Start the GPS service even if the providers are OFF and also when app is brought to foreground
+        Intent gpsServiceIntent = new Intent(this, GPSTracker.class);
+        gpsServiceIntent.putExtra("uid", VM.LoginViewModel.DriverId.get());
+        gpsServiceIntent.putExtra("mobileid", App.DeviceManager().DeviceId());
+        startService(gpsServiceIntent);
+
+        if (App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
+            playSoundAndDisplayAlert();
+
+            App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
+        }
+
         App.DeviceManager().RegisterForPushNotifications(this);
     }
 
@@ -565,9 +580,13 @@ public class LoginActivity extends ActionBarActivity {
                 showOKCancelDialog(R.string.msg_exit_app, new INotifier<String>() {
                     @Override
                     public void OnValueChanged(String value) {
-                        VM.LoginViewModel.Logout();
-                        stopService(new Intent(LoginActivity.this, GPSTracker.class));
-                        finish();
+                        VM.LoginViewModel.Logout(new Runnable() {
+                            @Override
+                            public void run() {
+                                stopService(new Intent(LoginActivity.this, GPSTracker.class));
+                                finish();
+                            }
+                        });
                     }
                 }, 0);
 

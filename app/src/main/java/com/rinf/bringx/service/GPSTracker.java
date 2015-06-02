@@ -208,7 +208,7 @@ public class GPSTracker extends Service implements LocationListener {
         Notification notification = new Notification.Builder(this)
                 .setContentTitle("BringX GPS Tracker")
                 .setContentText("(" + String.valueOf(longitude) + ", " + String.valueOf(latitude) + ")")
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.mipmap.ic_icon)
                 .build();
 
         Intent notificationIntent = new Intent(this, LoginActivity.class);

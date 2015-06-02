@@ -32,6 +32,7 @@ public class DeviceManager {
     private AtomicInteger _msgId = new AtomicInteger();
 
     public String DeviceId() {
+        //_deviceId = "158a-4141-a32e-6eb2";
         if (_deviceId != null)
             return _deviceId;
 

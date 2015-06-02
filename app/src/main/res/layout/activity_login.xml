@@ -150,6 +150,13 @@
                         android:maxLines="2"/>
                 </TableRow>
 
+                <TableRow android:layout_height="4dp" android:layout_width="match_parent">
+                    <TextView style="@style/TableLabel_Meetings" android:text=""/>
+                    <View style="@style/TableValue_Meetings"
+                        android:layout_height="2dp"
+                        android:background="@drawable/cell_rectangle"/>
+                </TableRow>
+
                 <TableRow style="@style/TableRow_Meetings">
                     <!-- Details -->
 
@@ -209,7 +216,8 @@
 
                     <TextView
                         style="@style/TableLabel_Meetings"
-                        android:text="@string/str_meeting_fromto" />
+                        android:id="@+id/lbl_meeting_fromTo"
+                        android:text="@string/str_meeting_from" />
 
                     <View style="@style/Table_CellRound" />
 

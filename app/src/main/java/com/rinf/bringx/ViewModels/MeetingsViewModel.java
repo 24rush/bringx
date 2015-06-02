@@ -57,6 +57,8 @@ public class MeetingsViewModel {
     public Observable<Boolean> IsError = new Observable<Boolean>(false);
     public String Error;
 
+    private String _currentAddress = "";
+
     private IStatusHandler<List<Meeting>, String> _meetingsListStatusHandler = new IStatusHandler<List<Meeting>, String>() {
         @Override
         public void OnError(com.rinf.bringx.utils.Error err, String... p) {
@@ -172,8 +174,8 @@ public class MeetingsViewModel {
                         Log.e("Error " + err.Message + "(" + err.Code + ") occurred on status update. Saving to local cache.");
 
                         // Error occurred during status update
-                        String orderId = (String) p[1];
-                        String status = (String) p[2];
+                        String orderId = (String) p[0];
+                        String status = (String) p[1];
 
                         App.StorageManager().Setting().appendToKey(SettingsStorage.PENDING_STATUSES, orderId + "," + status);
                     }
@@ -193,10 +195,11 @@ public class MeetingsViewModel {
 
                 if (value == MEETING_STATUS.PICKUP_DRIVING || value == MEETING_STATUS.DELIVERY_DRIVING) {
                     // Check to see if driver is at the same address
-                    String currentAddress = CurrentMeeting.Address.get();
-                    String nextAddress = NextMeeting.Address.get();
+                    String nextAddress = CurrentMeeting.Address.get();
 
-                    if (currentAddress.equals(nextAddress)) {
+                    Log.d("curr address: " + _currentAddress + " next: " + nextAddress);
+
+                    if (nextAddress.equals(_currentAddress)) {
                         CurrentMeeting.AdvanceOrderStatus();
                         return;
                     }
@@ -271,13 +274,20 @@ public class MeetingsViewModel {
         }
 
         if (OrdersList.size() > 0) {
-            CurrentMeeting.Load(OrdersList.get(0));
+            _currentAddress = CurrentMeeting.Address.get();
+            CurrentMeeting.PreLoad(OrdersList.get(0));
 
             if (OrdersList.size() > 1) {
                 NextMeeting.PreLoad(OrdersList.get(1));
             }
 
             CanDisplayMeetings.set(true);
+
+            // Order is displayed
+            CurrentMeeting.OnStatusChanged.set(CurrentMeeting.Type() == MeetingType.Pickup ? MEETING_STATUS.PICKUP_DRIVING : MEETING_STATUS.DELIVERY_DRIVING);
+            CurrentMeeting.IsMeetingMode.set(false);
+            CurrentMeeting.IsDrivingMode.set(true);
+
         } else {
             // No Orders to process
             OnNoMoreJobs.set(true);

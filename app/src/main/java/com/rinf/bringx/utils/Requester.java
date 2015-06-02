@@ -44,9 +44,9 @@ public class Requester {
     }
 
     public String POST(String url, JSONObject jsonParams) {
-        Log.d("Making POST " + "request to " + url + " with " + jsonParams.toString());
+        Log.d("Making POST " + "request to " + url + " with " + (jsonParams != null ? jsonParams.toString() : "no parameters"));
 
-        String response = null;
+        String response = "";
 
         DefaultHttpClient httpClient = new DefaultHttpClient();
         HttpConnectionParams.setConnectionTimeout(httpClient.getParams(), 30000);
@@ -83,9 +83,9 @@ public class Requester {
     }
 
     public String PUT(String url, JSONObject jsonParams) {
-        Log.d("Making PUT " + "request to " + url + " with " + jsonParams.toString());
+        Log.d("Making PUT " + "request to " + url + " with " + (jsonParams != null ? jsonParams.toString() : "no parameters"));
 
-        String response = null;
+        String response = "";
 
         DefaultHttpClient httpClient = new DefaultHttpClient();
         HttpConnectionParams.setConnectionTimeout(httpClient.getParams(), 30000);
@@ -124,7 +124,7 @@ public class Requester {
     public String GET(String url, JSONObject jsonParams) {
         Log.d("Making GET " + "request to " + url);
 
-        String response = null;
+        String response = "";
 
         DefaultHttpClient httpClient = new DefaultHttpClient();
         HttpConnectionParams.setConnectionTimeout(httpClient.getParams(), 30000);

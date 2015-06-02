@@ -23,6 +23,7 @@ import java.util.Objects;
 
 class URLS {
     public static String LoginURL = "http://dev-auftrag.bringx.com/json/login/1";
+    public static String LogoutURL = "http://dev-auftrag.bringx.com/json/drivers/%s/logout?auth_token=%s&version=1.0.1";
     public static String OrdersETA = "http://dev-auftrag.bringx.com/json/drivers/%s/orders-eta?auth_token=%s&version=1.0.1";
     public static String OrdersInfo = "http://dev-auftrag.bringx.com/json/drivers/%s/orders/%s?auth_token=%s&version=1.0.1";
     public static String StatusURL = "http://dev-auftrag.bringx.com/json/drivers/%s/orders/%s/status?auth_token=%s&version=1.0.1";
@@ -52,6 +53,20 @@ public class ServiceProxy {
 
         UserLoginTask loginTask = new UserLoginTask(_statusHandler, userName, password);
         loginTask.execute();
+    }
+
+    public void Logout(String driverId, String authToken) {
+        if (checkConnection() == false) {
+            if (_statusHandler != null) {
+                String[] params = { driverId, authToken };
+                _statusHandler.OnError(new Error(0, "No Internet Connection"), params);
+            }
+
+            return;
+        }
+
+        UserLogoutTask logoutTask = new UserLogoutTask(_statusHandler, driverId, authToken);
+        logoutTask.execute();
     }
 
     public void GetMeetingsList(String userName, String driverId, String authToken) {
@@ -161,6 +176,72 @@ class UserLoginTask extends AsyncTaskReport<String, Void, JSONObject> {
 
             } else {
                 ReportError(403, "Invalid login credentials");
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class UserLogoutTask extends AsyncTaskReport<String, Void, JSONObject> {
+
+    public UserLogoutTask(IStatusHandler statusHandler, String... params) {
+        super(statusHandler, params);
+    }
+
+    @Override
+    protected void onPreExecute() {
+        super.onPreExecute();
+    }
+
+    @Override
+    protected JSONObject doInBackground(String... a) {
+        if (_params.length != 2) {
+            return null;
+        }
+
+        JSONObject jsonObj = null;
+
+        Log.d("Performing logout for: " + _params[0] + " on device: " + App.DeviceManager().DeviceId());
+
+        try {
+
+            String url = String.format(URLS.LogoutURL, _params[0], _params[1]);
+            String response = App.Requester().POST(url, null);
+
+            // Force logout in case it fails (403 codes)
+            if (response == null || response.isEmpty()) {
+                jsonObj = new JSONObject();
+                jsonObj.put("status", "true");
+            }
+            else {
+                jsonObj = new JSONObject(response);
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return jsonObj;
+    }
+
+    @Override
+    protected void onPostExecute(JSONObject jsonObj) {
+        if (jsonObj == null) {
+            ReportError(500, "Server error");
+            return;
+        }
+
+        try {
+            if (!jsonObj.getString("status").equals("true")) {
+                JSONObject data = jsonObj.getJSONObject("data");
+
+                if (data != null) {
+                    ReportError(Integer.parseInt(data.optString("code")), data.optString("message"));
+                }
+
+            } else {
+                ReportSuccess(jsonObj);
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -281,12 +362,15 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
     }
 
     public List<Meeting> OnMeetingsListReceived(String meetingsListPayload) {
+        List<Meeting> meetingList = new ArrayList<Meeting>();
+
+        if (meetingsListPayload == null || meetingsListPayload.isEmpty())
+            return meetingList;
+
         // In case we get JSON response
         meetingsListPayload = meetingsListPayload.replaceAll("\\]", "").replaceAll("\\[", "").replaceAll("\"", "");
 
         String[] tokens = meetingsListPayload.split(",");
-
-        List<Meeting> meetingList = new ArrayList<Meeting>();
 
         if (meetingsListPayload.isEmpty())
             return meetingList;
@@ -346,7 +430,7 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
             meetingsListPayload = App.Requester().GET(url, null);
 
             // If we get a formatted JSON response with status code then fail
-            if (meetingsListPayload.contains("status")) {
+            if (meetingsListPayload == null || meetingsListPayload.contains("status")) {
                 ReportError(500, "Failed to get meetings list");
             }
         }
@@ -443,8 +527,8 @@ class UpdatePositionTask extends AsyncTaskReport<Object, Void, Boolean> {
         try {
             JSONObject jsonParams = new JSONObject();
 
-            jsonParams.put("latitude", (double) _params[0]);
-            jsonParams.put("longitude", (double) _params[1]);
+            jsonParams.put("latitude", (double) (_params[0]) * 1.0);
+            jsonParams.put("longitude", (double) (_params[1]) * 1.0);
             jsonParams.put("uid", (String) _params[2]);
             jsonParams.put("mobileid", (String) App.DeviceManager().DeviceId());
             jsonParams.put("ts_pos", (long) _params[3]);

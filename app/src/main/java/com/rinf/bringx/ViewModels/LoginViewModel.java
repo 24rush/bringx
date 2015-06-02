@@ -92,20 +92,38 @@ public class LoginViewModel {
         proxy.Login(UserName.get(), Password.get());
     }
 
-    public void Logout() {
+    public void Logout(final Runnable onLogout) {
         Log.d("Loging out user: " + UserName.get());
 
-        UserName.set("");
-        Password.set("");
-        DriverId.set("");
-        AuthToken.set("");
+        IStatusHandler<JSONObject, String> _logoutHandler = new IStatusHandler<JSONObject, String>() {
+            @Override
+            public void OnError(com.rinf.bringx.utils.Error err, String... ctx) {
+                Error = err.Message;
+                IsError.set(true);
+            }
 
-        IsLoggedIn.set(false);
+            @Override
+            public void OnSuccess(JSONObject response, String... ctx) {
+                UserName.set("");
+                Password.set("");
+                DriverId.set("");
+                AuthToken.set("");
 
-        Error = "";
-        IsError.set(false);
+                IsLoggedIn.set(false);
 
-        updateCacheCredentials();
+                Error = "";
+                IsError.set(false);
+
+                updateCacheCredentials();
+
+                if (onLogout != null) {
+                    onLogout.run();
+                }
+            }
+        };
+
+        ServiceProxy proxy = new ServiceProxy(_logoutHandler);
+        proxy.Logout(DriverId.get(), AuthToken.get());
     }
 
     private void updateCacheCredentials() {

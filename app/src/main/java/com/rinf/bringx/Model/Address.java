@@ -39,8 +39,8 @@ public class Address {
             JSONObject coord = parser.optJSONObject("coordinates");
 
             if (coord != null) {
-                _latitude = coord.getDouble("X") / 10000;
-                _longitude = coord.getDouble("Y") / 10000;
+                _latitude = coord.getDouble("X");
+                _longitude = coord.getDouble("Y");
             }
 
             _status = "";

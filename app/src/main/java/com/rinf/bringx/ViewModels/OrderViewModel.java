@@ -4,6 +4,7 @@ import com.rinf.bringx.EasyBindings.Observable;
 import com.rinf.bringx.Model.Address;
 import com.rinf.bringx.Model.Cargo;
 import com.rinf.bringx.Model.Order;
+import com.rinf.bringx.utils.Log;
 import com.rinf.bringx.utils.StringAppender;
 
 import java.security.InvalidParameterException;
@@ -35,6 +36,8 @@ public class OrderViewModel {
     public Observable<Boolean> IsMeetingMode = new Observable<Boolean>(false);
 
     public Observable<MEETING_STATUS> OnStatusChanged = new Observable<MEETING_STATUS>(MEETING_STATUS.PENDING);
+
+    public MeetingType Type() { return _type; }
 
     private Address _address;
     private Address _altAddress;
@@ -91,15 +94,6 @@ public class OrderViewModel {
         Pay.set(other.Pay.get());
     }
 
-    public void Load(OrderViewModel other) {
-        PreLoad(other);
-
-        // Order is displayed
-        OnStatusChanged.set(_type == MeetingType.Pickup ? MEETING_STATUS.PICKUP_DRIVING : MEETING_STATUS.DELIVERY_DRIVING);
-        IsMeetingMode.set(false);
-        IsDrivingMode.set(true);
-    }
-
     private void buildObject(MeetingType type, Date eta, String orderId, String orderVersion, Order modelData) {
         _order = modelData;
         _type = type;
@@ -109,12 +103,13 @@ public class OrderViewModel {
         ParentOrderId = orderId;
         ParentOrderVersion = orderVersion;
 
-        ETAHours.set(android.text.format.DateFormat.format("hh:mm", eta) + "");
+        ETAHours.set(android.text.format.DateFormat.format("HH:mm", eta) + "");
         ETADate.set(android.text.format.DateFormat.format(" - dd.MM.yyyy", eta) + " - " + ParentOrderId);
 
         String strAddress = "";
         strAddress = StringAppender.AppendIfFilled(strAddress, _address.Company(), _address.Street(), _address.Zip());
         Address.set(strAddress);
+        Log.d("Order " + orderId + " " + _type + " " + strAddress);
 
         Name.set(_address.Name());
 
@@ -127,7 +122,7 @@ public class OrderViewModel {
         _cargo = modelData.Cargo();
         if (_cargo != null) {
             for (Cargo item : _cargo) {
-                cargo += item.Count() + "x " + item.Title() + "\n";
+                cargo += item.Count() + "x " + item.Title() + " € " + item.Price() + "\n";
                 cargoItemsPrice += (item.Count() * item.Price());
             }
 
