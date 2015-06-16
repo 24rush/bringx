@@ -16,6 +16,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.ActionBar;
@@ -35,6 +36,7 @@ import com.rinf.bringx.EasyBindings.ICommand;
 import com.rinf.bringx.EasyBindings.INotifier;
 import com.rinf.bringx.EasyBindings.Observable;
 import com.rinf.bringx.R;
+import com.rinf.bringx.ViewModels.MEETING_STATUS;
 import com.rinf.bringx.ViewModels.MeetingType;
 import com.rinf.bringx.ViewModels.OrderViewModel;
 import com.rinf.bringx.ViewModels.VM;
@@ -287,7 +289,21 @@ public class LoginActivity extends ActionBarActivity {
         Bindings.BindCommand(Controls.get(R.id.btnLogin), new ICommand<Object>() {
             @Override
             public void Execute(Object context) {
-                VM.LoginViewModel.DoLogin();
+                new AsyncTask<Void, Void, Integer>() {
+
+                    @Override
+                    protected Integer doInBackground(Void... params) {
+                        App.DeviceManager().RegisterForPushNotifications(LoginActivity.this);
+
+                        return 0;
+                    }
+
+                    @Override
+                    protected void onPostExecute(Integer result) {
+                        VM.LoginViewModel.DoLogin();
+                    }
+
+                }.execute();
             }
         }, this);
 
@@ -377,7 +393,18 @@ public class LoginActivity extends ActionBarActivity {
         Bindings.BindCommand(Controls.get(R.id.btn_order_status), new ICommand<Object>() {
             @Override
             public void Execute(Object context) {
-                VM.MeetingsViewModel.CurrentMeeting.AdvanceOrderStatus();
+
+                MEETING_STATUS value = VM.MeetingsViewModel.CurrentMeeting.OnStatusChanged.get();
+                if (value == MEETING_STATUS.PICKUP_ARRIVED || value == MEETING_STATUS.DELIVERY_ARRIVED) {
+                    showOKCancelDialog(R.string.msgAnyComments, new INotifier<String>() {
+                        @Override
+                        public void OnValueChanged(String comments) {
+                            VM.MeetingsViewModel.CurrentMeeting.AdvanceOrderStatus(comments);
+                        }
+                    }, R.layout.rejected_form_layout);
+                }
+                else
+                    VM.MeetingsViewModel.CurrentMeeting.AdvanceOrderStatus("");
 
                 for (ExpandableControl exp : _expandableControls) {
                     exp.ResetExpand();
@@ -403,11 +430,8 @@ public class LoginActivity extends ActionBarActivity {
         VM.MeetingsViewModel.OnNoMoreJobs.addObserver(new INotifier<Boolean>() {
             @Override
             public void OnValueChanged(Boolean value) {
-                if (value == false)
-                    return;
-
-                Controls.get(R.id.layout_meetings).setVisibility(View.GONE);
-                Controls.get(R.id.lbl_no_more_jobs).setVisibility(View.VISIBLE);
+                Controls.get(R.id.layout_meetings).setVisibility(value == true ? View.GONE : View.VISIBLE);
+                Controls.get(R.id.lbl_no_more_jobs).setVisibility(value == true ? View.VISIBLE : View.GONE);
                 invalidateOptionsMenu();
             }
         });
@@ -553,8 +577,6 @@ public class LoginActivity extends ActionBarActivity {
 
             App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
         }
-
-        App.DeviceManager().RegisterForPushNotifications(this);
     }
 
     @Override

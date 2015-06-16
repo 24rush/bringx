@@ -11,6 +11,7 @@ import java.security.InvalidParameterException;
 import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class OrderViewModel {
     private Order _order;
@@ -21,6 +22,8 @@ public class OrderViewModel {
 
     public Observable<String> ETAHours = new Observable<String>("");
     public Observable<String> ETADate = new Observable<String>("");
+    public Observable<String> CTADelayDelivery = new Observable<String>("");
+    public Observable<String> CTADelayPickup = new Observable<String>("");
     public Observable<String> Name = new Observable<String>("");
     public Observable<String> Address = new Observable<String>("");
     public Observable<String> Details = new Observable<String>("");
@@ -67,6 +70,8 @@ public class OrderViewModel {
         ParentOrderVersion = "";
         ETAHours.set("");
         ETADate.set("");
+        CTADelayDelivery.set("");
+        CTADelayPickup.set("");
         Address.set("");
         Name.set("");
         Details.set("");
@@ -86,6 +91,8 @@ public class OrderViewModel {
 
         ETAHours.set(other.ETAHours.get());
         ETADate.set(other.ETADate.get());
+        CTADelayDelivery.set(other.CTADelayDelivery.get());
+        CTADelayPickup.set(other.CTADelayPickup.get());
         Address.set(other.Address.get());
         Name.set(other.Name.get());
         Details.set(other.Details.get());
@@ -103,8 +110,29 @@ public class OrderViewModel {
         ParentOrderId = orderId;
         ParentOrderVersion = orderVersion;
 
-        ETAHours.set(android.text.format.DateFormat.format("HH:mm", eta) + "");
-        ETADate.set(android.text.format.DateFormat.format(" - dd.MM.yyyy", eta) + " - " + ParentOrderId);
+        String delayMinutesStr = "";
+        Date selectedCTA = null;
+
+        if (_type == MeetingType.Delivery && modelData.CtaDeliveryTime() != null) {
+            selectedCTA = modelData.CtaDeliveryTime();
+        } else if (_type == MeetingType.Pickup && modelData.CtaPickupTime() != null) {
+            selectedCTA = modelData.CtaPickupTime();
+        }
+
+        long delayMinutes = TimeUnit.MINUTES.convert(eta.getTime() - modelData.CtaDeliveryTime().getTime(), TimeUnit.MILLISECONDS);
+        delayMinutesStr = String.valueOf(delayMinutes) + "\"";
+
+        if (delayMinutes > 0)
+            delayMinutesStr = "+" + delayMinutesStr;
+
+        if (_type == MeetingType.Pickup)
+            CTADelayPickup.set(delayMinutesStr);
+        else
+            CTADelayDelivery.set(delayMinutesStr);
+
+        ETAHours.set(android.text.format.DateFormat.format("HH:mm", eta) + " " + delayMinutesStr);
+        // Date is not needed anymore
+        //ETADate.set(android.text.format.DateFormat.format(" - dd.MM.yyyy", eta) + " - " + ParentOrderId);
 
         String strAddress = "";
         strAddress = StringAppender.AppendIfFilled(strAddress, _address.Company(), _address.Street(), _address.Zip());
@@ -142,7 +170,7 @@ public class OrderViewModel {
         Instructions.set(!info.isEmpty() ? info : "--");
     }
 
-    public void AdvanceOrderStatus() {
+    public void AdvanceOrderStatus(String comments) {
         MEETING_STATUS currentStatus = OnStatusChanged.get();
 
         switch (currentStatus) {
@@ -167,6 +195,7 @@ public class OrderViewModel {
                 break;
         }
 
+        ReasonRejected.set(comments);
         SetStatus(currentStatus);
     }
 
@@ -225,5 +254,10 @@ public class OrderViewModel {
             SetStatus(MEETING_STATUS.DELIVERY_FAILED);
         else
             SetStatus(MEETING_STATUS.PICKUP_FAILED);
+    }
+
+    public void Update(String comments, MEETING_STATUS status) {
+        ReasonRejected.set(comments);
+        SetStatus(status);
     }
 }

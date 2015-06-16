@@ -135,7 +135,20 @@ public class DeviceManager {
             String regId = getRegistrationId(App.Context());
 
             if (regId.isEmpty()) {
-                registerInBackground();
+                if (_gcm == null) {
+                    _gcm = GoogleCloudMessaging.getInstance(App.Context());
+                }
+
+                try {
+                    regId = _gcm.register(SENDER_ID);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Log.d("Device registered, registration ID=" + regId);
+
+                App.StorageManager().Setting().setString(SettingsStorage.REG_ID, regId);
+                App.StorageManager().Setting().setInt(SettingsStorage.APP_VERSION, getAppVersion(App.Context()));
             }
         }
     }

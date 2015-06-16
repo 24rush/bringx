@@ -5,6 +5,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class Order {
@@ -31,6 +32,8 @@ public class Order {
 
         if (Cargo() == null)
             throw new JSONException("Cargo not found");
+
+        Cta();
     }
 
     private JSONObject _jsonObj;
@@ -38,6 +41,9 @@ public class Order {
     private Address _pickupAddress;
     private Address _deliveryAddress;
     private List<Cargo> _cargo;
+
+    private Date _ctaDeliveryTime;
+    private Date _ctaPickupTime;
 
     @Override
     public String toString() {
@@ -142,4 +148,19 @@ public class Order {
 
         return _cargo;
     }
+
+    public void Cta() {
+        String ctaStr = _jsonObj.optString("communicated_delivery_time");
+        if (ctaStr != null && !ctaStr.isEmpty()) {
+            _ctaDeliveryTime = new Date(Long.parseLong(ctaStr) * 1000);
+        }
+
+        ctaStr = _jsonObj.optString("communicated_pickup_time");
+        if (ctaStr != null && !ctaStr.isEmpty()) {
+            _ctaPickupTime = new Date(Long.parseLong(ctaStr) * 1000);
+        }
+    }
+
+    public Date CtaDeliveryTime() { return _ctaDeliveryTime; }
+    public Date CtaPickupTime() { return _ctaPickupTime; }
 }

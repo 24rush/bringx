@@ -139,14 +139,20 @@ class UserLoginTask extends AsyncTaskReport<String, Void, JSONObject> {
 
         JSONObject jsonObj = null;
 
-        Log.d("Performing login for: " + _params[0] + " on device: " + App.DeviceManager().DeviceId());
-
         try {
             JSONObject jsonParams = new JSONObject();
             jsonParams.put("hidden", "0");
             jsonParams.put("mobileid", App.DeviceManager().DeviceId());
             jsonParams.put("username", _params[0]);
             jsonParams.put("password", DataUtils.md5(_params[1]));
+
+            String regId = App.StorageManager().Setting().getString(SettingsStorage.REG_ID);
+            if (regId == null || regId.isEmpty())
+                regId = "0";
+
+            jsonParams.put("registration_id", regId);
+
+            Log.d("Performing login for: " + _params[0] + " on device: " + App.DeviceManager().DeviceId() + " with registration_id: " + regId);
 
             return new JSONObject(App.Requester().POST(URLS.LoginURL, jsonParams));
 
@@ -390,7 +396,7 @@ class MeetingsListTask extends AsyncTaskReport<String, Void, List<Meeting>> {
             }
 
             Date etaDelivery = null;
-            if (!etaDeliveryStr.equals("")) {
+            if (!etaDeliveryStr.equals("") && !etaDeliveryStr.equals("false")) {
                 etaDelivery = new Date(Long.parseLong(etaDeliveryStr) * 1000);
             }
 
@@ -479,12 +485,12 @@ class MeetingStatusTask extends AsyncTaskReport<String, Void, Boolean> {
 
             //"http://dev-auftrag.bringx.com//json/drivers/%s/orders/%s/status?auth_token=%s&version=1.0.1";
             String url = String.format(URLS.StatusURL, _params[3], _params[0], _params[4]);
-            jsonObj = new JSONObject(App.Requester().PUT(url, jsonParams));
+            //jsonObj = new JSONObject(App.Requester().PUT(url, jsonParams));
 
-            if (jsonObj.optString("status").equals("success"))
+            //if (jsonObj.optString("status").equals("success"))
                 return true;
 
-            return false;
+            //return false;
 
         } catch (JSONException e) {
             e.printStackTrace();
