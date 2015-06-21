@@ -224,15 +224,17 @@ public class LoginActivity extends ActionBarActivity {
         Bindings.BindVisible(Controls.get(R.id.imageInternet), IsConnectedInternet);
         Bindings.BindVisible(Controls.get(R.id.imageNoInternet), IsConnectedInternet, Mode.Invert);
 
-        Bindings.BindVisible(Controls.get(R.id.layout_login), VM.LoginViewModel.IsLoggedIn, Mode.Invert);
         Bindings.BindVisible(Controls.get(R.id.layout_meetings), VM.MeetingsViewModel.CanDisplayMeetings);
         Bindings.BindChanged(VM.LoginViewModel.IsLoggedIn, new INotifier<Boolean>() {
             @Override
             public void OnValueChanged(Boolean value) {
+                Controls.get(R.id.layout_login).setVisibility(value == false ? View.VISIBLE : View.GONE);
+
                 invalidateOptionsMenu();
 
                 if (value == false) {
                     Controls.get(R.id.lbl_no_more_jobs).setVisibility(View.GONE);
+                    Controls.get(R.id.layout_meetings).setVisibility(View.GONE);
                     return;
                 }
 
@@ -395,6 +397,8 @@ public class LoginActivity extends ActionBarActivity {
             public void Execute(Object context) {
 
                 MEETING_STATUS value = VM.MeetingsViewModel.CurrentMeeting.OnStatusChanged.get();
+
+                // If step is Arrived or Loaded check for confirmation
                 if (value == MEETING_STATUS.PICKUP_ARRIVED || value == MEETING_STATUS.DELIVERY_ARRIVED) {
                     showOKCancelDialog(R.string.msgAnyComments, new INotifier<String>() {
                         @Override
@@ -503,9 +507,19 @@ public class LoginActivity extends ActionBarActivity {
         App.OnActivityPaused();
 
         unregisterReceiver(mConnReceiver);
+
+        if (mMediaPlayer != null) {
+            mMediaPlayer.stop();
+            mMediaPlayer = null;
+        }
     }
 
     private void playSoundAndDisplayAlert() {
+        if (mMediaPlayer != null) {
+            Log.d("Sound alert already playing");
+            return;
+        }
+
         try {
             Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
             mMediaPlayer = new MediaPlayer();
@@ -527,6 +541,7 @@ public class LoginActivity extends ActionBarActivity {
             public Object call() throws Exception {
                 if (mMediaPlayer != null) {
                     mMediaPlayer.stop();
+                    mMediaPlayer = null;
                 }
 
                 return null;

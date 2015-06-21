@@ -18,6 +18,8 @@ import java.util.List;
 public class PushNotificationsReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
+        Log.d("Received push notification");
+
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(App.Context());
         String messageType = gcm.getMessageType(intent);
         Bundle extras = intent.getExtras();
@@ -25,7 +27,7 @@ public class PushNotificationsReceiver extends BroadcastReceiver {
         if (!extras.isEmpty() && GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
             String newMeetingList = extras.getString("ml");
 
-            if (newMeetingList != null && !newMeetingList.isEmpty()) {
+            if (newMeetingList != null) {
                 Log.d("Received new meeting list: " + newMeetingList);
 
                 MeetingsListTask meetingsListTask = new MeetingsListTask(null);

@@ -19,7 +19,7 @@ import com.rinf.bringx.utils.ServiceProxy;
 
 public class GPSTracker extends Service implements LocationListener {
 
-    int GPS_TRACKER_NOTIFICATION_ID = 11042015;
+    public static int GPS_TRACKER_NOTIFICATION_ID = 11042015;
 
     boolean isServiceStart = true;
 
@@ -41,6 +41,7 @@ public class GPSTracker extends Service implements LocationListener {
 
     private static String _uid = "";
     private static String _mobileId = "";
+    private static String _oCount = "0";
 
     private ServiceProxy _sp = new ServiceProxy(null);
 
@@ -182,8 +183,14 @@ public class GPSTracker extends Service implements LocationListener {
         }
         else
         {
-           _uid = extras.getString("uid");
-           _mobileId = (String) extras.getString("mobileid");
+            _oCount = extras.getString("ordersCount");
+
+            if (_oCount != null) {
+                onLocationUpdated(getLongitude(), getLatitude());
+            } else {
+                _uid = extras.getString("uid");
+                _mobileId = (String) extras.getString("mobileid");
+            }
         }
 
         return START_REDELIVER_INTENT;
@@ -206,9 +213,9 @@ public class GPSTracker extends Service implements LocationListener {
         Log.d(String.valueOf(longitude) + ' ' + String.valueOf(latitude));
 
         Notification notification = new Notification.Builder(this)
-                .setContentTitle("BringX GPS Tracker")
+                .setContentTitle(_oCount + " orders in queue")
                 .setContentText("(" + String.valueOf(longitude) + ", " + String.valueOf(latitude) + ")")
-                .setSmallIcon(R.mipmap.ic_icon)
+                .setSmallIcon(R.mipmap.ic_icon_small)
                 .build();
 
         Intent notificationIntent = new Intent(this, LoginActivity.class);

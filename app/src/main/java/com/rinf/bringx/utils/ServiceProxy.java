@@ -485,12 +485,12 @@ class MeetingStatusTask extends AsyncTaskReport<String, Void, Boolean> {
 
             //"http://dev-auftrag.bringx.com//json/drivers/%s/orders/%s/status?auth_token=%s&version=1.0.1";
             String url = String.format(URLS.StatusURL, _params[3], _params[0], _params[4]);
-            //jsonObj = new JSONObject(App.Requester().PUT(url, jsonParams));
+            jsonObj = new JSONObject(App.Requester().PUT(url, jsonParams));
 
-            //if (jsonObj.optString("status").equals("success"))
+            if (jsonObj.optString("status").equals("success"))
                 return true;
 
-            //return false;
+            return false;
 
         } catch (JSONException e) {
             e.printStackTrace();

@@ -93,7 +93,7 @@ public class LoginViewModel {
     }
 
     public void Logout(final Runnable onLogout) {
-        Log.d("Loging out user: " + UserName.get());
+        Log.d("Logging out user: " + UserName.get());
 
         IStatusHandler<JSONObject, String> _logoutHandler = new IStatusHandler<JSONObject, String>() {
             @Override
@@ -122,8 +122,13 @@ public class LoginViewModel {
             }
         };
 
-        ServiceProxy proxy = new ServiceProxy(_logoutHandler);
-        proxy.Logout(DriverId.get(), AuthToken.get());
+        if (IsLoggedIn.get() == true) {
+            ServiceProxy proxy = new ServiceProxy(_logoutHandler);
+            proxy.Logout(DriverId.get(), AuthToken.get());
+        }
+        else {
+            _logoutHandler.OnSuccess(null, null);
+        }
     }
 
     private void updateCacheCredentials() {
