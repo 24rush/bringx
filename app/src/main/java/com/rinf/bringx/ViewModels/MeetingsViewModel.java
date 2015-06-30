@@ -1,14 +1,22 @@
 package com.rinf.bringx.ViewModels;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
 
 import com.rinf.bringx.App;
 import com.rinf.bringx.EasyBindings.IContextNotifier;
 import com.rinf.bringx.EasyBindings.INotifier;
 import com.rinf.bringx.EasyBindings.Observable;
+import com.rinf.bringx.Model.Cargo;
 import com.rinf.bringx.Model.Meeting;
 import com.rinf.bringx.Model.Order;
 import com.rinf.bringx.R;
+import com.rinf.bringx.Views.LoginActivity;
+import com.rinf.bringx.service.GPSTracker;
 import com.rinf.bringx.storage.SettingsStorage;
 import com.rinf.bringx.utils.*;
 
@@ -90,6 +98,7 @@ public class MeetingsViewModel {
 
                     // Here we should have all the orders we need
                     // Start by breaking them in pickup/delivery then sort them
+                    // _orderedMeetings contains the old meetings
                     OrderedMeeting firstMeeting = null;
                     if (_orderedMeetings.size() > 0) {
                         firstMeeting = _orderedMeetings.get(0);
@@ -109,8 +118,10 @@ public class MeetingsViewModel {
                         Collections.sort(_orderedMeetings);
                         OrderedMeeting newFirstMeeting = _orderedMeetings.get(0);
 
-                        if (firstMeeting != null && newFirstMeeting != null && (!firstMeeting.OrderId.equals(newFirstMeeting.OrderId) || firstMeeting.Type != newFirstMeeting.Type ||
-                                !firstMeeting.OrderVersion.equals(newFirstMeeting.OrderVersion) || firstMeeting.ETA.compareTo(newFirstMeeting.ETA) != 0)) {
+                        // If there were no more orders and a new one arrives then trigger alert
+                        // or if there is an actual order change
+                        if ((OnNoMoreJobs.get() == true && newFirstMeeting != null) || (firstMeeting != null && newFirstMeeting != null && (!firstMeeting.OrderId.equals(newFirstMeeting.OrderId) || firstMeeting.Type != newFirstMeeting.Type ||
+                                !firstMeeting.OrderVersion.equals(newFirstMeeting.OrderVersion) || firstMeeting.ETA.compareTo(newFirstMeeting.ETA) != 0))) {
                             // Play sound and display alert
                             Log.d("First meeting changed");
                             OnFirstMeetingChanged.set(true);
@@ -137,11 +148,27 @@ public class MeetingsViewModel {
                     }
 
                     if (OrdersList.size() > 0) {
+                        OrderViewModel agrMeeting = OrdersList.get(0);
+                        for (int i = 1; i < OrdersList.size(); i++) {
+                            OrderViewModel currOrder = OrdersList.get(i);
+
+                            if (agrMeeting.Address.get().equals(currOrder.Address.get())) {
+                                agrMeeting.AddAgrCargo(currOrder.Cargo());
+                            } else {
+                                agrMeeting = currOrder;
+                            }
+                        }
+
+                        OnNoMoreJobs.set(false);
                         loadCurrentAndNextMeetings(false);
                     } else {
                         // No Orders to process
                         OnNoMoreJobs.set(true);
                     }
+
+                    Intent gpsServiceIntent = new Intent(App.Context(), GPSTracker.class);
+                    gpsServiceIntent.putExtra("ordersCount", String.valueOf(OrdersList.size() / 2 + OrdersList.size() % 2));
+                    App.Context().startService(gpsServiceIntent);
                 }
             };
 
@@ -190,7 +217,7 @@ public class MeetingsViewModel {
                 proxy.SetMeetingStatus(CurrentMeeting.ParentOrderId + "-" + CurrentMeeting.ParentOrderVersion, OrderViewModel.mapStatus(value),
                         CurrentMeeting.ReasonRejected.get(), VM.LoginViewModel.DriverId.get(), VM.LoginViewModel.AuthToken.get());
 
-                Log.d("Setting status " + value + " to " + CurrentMeeting.ParentOrderId);
+                Log.d("Setting status " + value + " to " + CurrentMeeting.ParentOrderId + " comments " + CurrentMeeting.ReasonRejected.get());
                 App.StorageManager().Orders().setString(CurrentMeeting.ParentOrderId, CurrentMeeting.ModelData().toString());
 
                 if (value == MEETING_STATUS.PICKUP_DRIVING || value == MEETING_STATUS.DELIVERY_DRIVING) {
@@ -200,7 +227,7 @@ public class MeetingsViewModel {
                     Log.d("curr address: " + _currentAddress + " next: " + nextAddress);
 
                     if (nextAddress.equals(_currentAddress)) {
-                        CurrentMeeting.AdvanceOrderStatus();
+                        CurrentMeeting.AdvanceOrderStatus("");
                         return;
                     }
                 }
@@ -271,6 +298,10 @@ public class MeetingsViewModel {
     private void loadCurrentAndNextMeetings(boolean removeHeadOfList) {
         if (removeHeadOfList) {
             OrdersList.remove(0);
+
+            Intent gpsServiceIntent = new Intent(App.Context(), GPSTracker.class);
+            gpsServiceIntent.putExtra("ordersCount", String.valueOf(OrdersList.size() / 2 + OrdersList.size() % 2));
+            App.Context().startService(gpsServiceIntent);
         }
 
         if (OrdersList.size() > 0) {
@@ -285,9 +316,6 @@ public class MeetingsViewModel {
 
             // Order is displayed
             CurrentMeeting.OnStatusChanged.set(CurrentMeeting.Type() == MeetingType.Pickup ? MEETING_STATUS.PICKUP_DRIVING : MEETING_STATUS.DELIVERY_DRIVING);
-            CurrentMeeting.IsMeetingMode.set(false);
-            CurrentMeeting.IsDrivingMode.set(true);
-
         } else {
             // No Orders to process
             OnNoMoreJobs.set(true);

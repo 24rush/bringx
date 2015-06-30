@@ -17,12 +17,17 @@ public class Order {
         if (Id() == null || Version() == null)
             throw new JSONException("No Id or Version found");
 
-        PriceGoods();
-        if (PriceDelivery() == null) {
-            throw new JSONException("Price of delivery not found");
-        }
+        if (PriceGoodsDelivery() == null ||
+            PriceVatGoodsDelivery() == null ||
+            PriceTransportDelivery() == null ||
+            PriceVatTransportDelivery() == null ||
 
-        PriceComment();
+            PriceGoodsPickup() == null ||
+            PriceVatGoodsPickup() == null ||
+            PriceTransportPickup() == null ||
+            PriceVatTransportPickup() == null) {
+            throw new JSONException("Some prices of pickup/delivery were not found");
+        }
 
         if (NumberGoods() == null)
             throw new JSONException("Pickup or Delivery not found");
@@ -68,21 +73,45 @@ public class Order {
         }
     }
 
-    public Double PriceGoods() {
-        return _jsonObj.optDouble("price_goods");
-    }
-
-    public Double PriceDelivery() {
+    private Double getFieldDouble(String name) {
         try {
-            return _jsonObj.getDouble("price_delivery");
+            return _jsonObj.getDouble(name);
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public String PriceComment() {
-        return _jsonObj.optString("price_comment");
+    public Double PriceGoodsPickup() {
+        return getFieldDouble("price_goods_pickup");
+    }
+
+    public Double PriceVatGoodsPickup() {
+        return getFieldDouble("price_vat_goods_pickup");
+    }
+
+    public Double PriceTransportPickup() {
+        return getFieldDouble("price_transport_pickup");
+    }
+
+    public Double PriceVatTransportPickup() {
+        return getFieldDouble("price_vat_transport_pickup");
+    }
+
+    public Double PriceGoodsDelivery() {
+        return getFieldDouble("price_goods_delivery");
+    }
+
+    public Double PriceVatGoodsDelivery() {
+        return getFieldDouble("price_vat_goods_delivery");
+    }
+
+    public Double PriceTransportDelivery() {
+        return getFieldDouble("price_transport_delivery");
+    }
+
+    public Double PriceVatTransportDelivery() {
+        return getFieldDouble("price_vat_transport_delivery");
     }
 
     public Integer NumberGoods() {

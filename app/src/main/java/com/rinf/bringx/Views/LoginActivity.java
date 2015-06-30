@@ -376,7 +376,7 @@ public class LoginActivity extends ActionBarActivity {
         Bindings.BindCommand(Controls.get(R.id.value_meeting_address), onClickAddressName, VM.MeetingsViewModel.CurrentMeeting);
 
         _expandableControls.clear();
-        _expandableControls.add((new ExpandableControl(Controls.get(R.id.value_meeting_details), 1, 4))
+        _expandableControls.add((new ExpandableControl(Controls.get(R.id.value_meeting_details), 1, 50))
                 .setExpanderRound(Controls.get(R.id.expander_round_meeting_details))
                 .setExpanderClose(Controls.get(R.id.expander_close_meeting_details))
                 .setExpanderOpen(Controls.get(R.id.expander_open_meeting_details)).done());
@@ -404,30 +404,14 @@ public class LoginActivity extends ActionBarActivity {
                         @Override
                         public void OnValueChanged(String comments) {
                             VM.MeetingsViewModel.CurrentMeeting.AdvanceOrderStatus(comments);
+                            resetExpandableControls();
                         }
                     }, R.layout.rejected_form_layout);
                 }
-                else
+                else {
                     VM.MeetingsViewModel.CurrentMeeting.AdvanceOrderStatus("");
-
-                for (ExpandableControl exp : _expandableControls) {
-                    exp.ResetExpand();
+                    resetExpandableControls();
                 }
-
-                _expandableControls.get(1).SetDefaultLines(4);
-                // !!!WKA: Expand details in meeting mode screen
-                if (VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode.get() == true) {
-                    _expandableControls.get(1).SetDefaultLines(2);
-
-                    _expandableControls.get(0).ToggleExpand();
-                    _expandableControls.get(2).ToggleExpand();
-                }
-
-                TextView fromTo = (TextView) Controls.get(R.id.lbl_meeting_fromTo);
-                if (VM.MeetingsViewModel.CurrentMeeting.Type() == MeetingType.Pickup)
-                    fromTo.setText(localization.getText(R.string.str_meeting_to));
-                else
-                    fromTo.setText(localization.getText(R.string.str_meeting_from));
             }
         }, null);
 
@@ -490,6 +474,28 @@ public class LoginActivity extends ActionBarActivity {
         // Pay
         Bindings.BindVisible(Controls.get(R.id.layout_row_pay), VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode);
         Bindings.BindText(Controls.get(R.id.value_meeting_pay), VM.MeetingsViewModel.CurrentMeeting.Pay);
+    }
+
+    private void resetExpandableControls()
+    {
+        for (ExpandableControl exp : _expandableControls) {
+            exp.ResetExpand();
+        }
+
+        _expandableControls.get(1).SetDefaultLines(4);
+        // !!!WKA: Expand details in meeting mode screen
+        if (VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode.get() == true) {
+            _expandableControls.get(1).SetDefaultLines(2);
+
+            _expandableControls.get(0).ToggleExpand();
+            _expandableControls.get(2).ToggleExpand();
+        }
+
+        TextView fromTo = (TextView) Controls.get(R.id.lbl_meeting_fromTo);
+        if (VM.MeetingsViewModel.CurrentMeeting.Type() == MeetingType.Pickup)
+            fromTo.setText(localization.getText(R.string.str_meeting_to));
+        else
+            fromTo.setText(localization.getText(R.string.str_meeting_from));
     }
 
     @Override

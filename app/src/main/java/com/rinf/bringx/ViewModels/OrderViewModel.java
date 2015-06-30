@@ -9,7 +9,9 @@ import com.rinf.bringx.utils.StringAppender;
 
 import java.security.InvalidParameterException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +30,8 @@ public class OrderViewModel {
     public Observable<String> Address = new Observable<String>("");
     public Observable<String> Details = new Observable<String>("");
 
+    public List<List<Cargo>> AgrCargo = new ArrayList<List<Cargo>>();
+
     public Observable<String> Instructions = new Observable<String>("");
 
     public Observable<String> FromTo = new Observable<String>("");
@@ -41,6 +45,8 @@ public class OrderViewModel {
     public Observable<MEETING_STATUS> OnStatusChanged = new Observable<MEETING_STATUS>(MEETING_STATUS.PENDING);
 
     public MeetingType Type() { return _type; }
+    public boolean IsDelivery() { return _type == MeetingType.Delivery; }
+    public boolean IsPickup() { return _type == MeetingType.Pickup; }
 
     private Address _address;
     private Address _altAddress;
@@ -56,6 +62,9 @@ public class OrderViewModel {
     }
 
     private List<Cargo> _cargo;
+    public List<Cargo> Cargo() {
+        return _cargo;
+    }
 
     public OrderViewModel() {
 
@@ -78,6 +87,8 @@ public class OrderViewModel {
         Instructions.set("");
         FromTo.set("");
         Pay.set("");
+
+        AgrCargo.clear();
     }
 
     public void PreLoad(OrderViewModel other) {
@@ -85,6 +96,8 @@ public class OrderViewModel {
         _type = other._type;
         _address = other._address;
         _cargo = other._cargo;
+
+        AgrCargo = other.AgrCargo;
 
         ParentOrderId = other.ParentOrderId;
         ParentOrderVersion = other.ParentOrderVersion;
@@ -105,7 +118,7 @@ public class OrderViewModel {
         _order = modelData;
         _type = type;
 
-        _address = _type == MeetingType.Delivery ? modelData.DeliveryAddress() : modelData.PickupAddress();
+        _address = IsDelivery() ? modelData.DeliveryAddress() : modelData.PickupAddress();
 
         ParentOrderId = orderId;
         ParentOrderVersion = orderVersion;
@@ -113,9 +126,9 @@ public class OrderViewModel {
         String delayMinutesStr = "";
         Date selectedCTA = null;
 
-        if (_type == MeetingType.Delivery && modelData.CtaDeliveryTime() != null) {
+        if (IsDelivery() && modelData.CtaDeliveryTime() != null) {
             selectedCTA = modelData.CtaDeliveryTime();
-        } else if (_type == MeetingType.Pickup && modelData.CtaPickupTime() != null) {
+        } else if (IsPickup() && modelData.CtaPickupTime() != null) {
             selectedCTA = modelData.CtaPickupTime();
         }
 
@@ -125,7 +138,7 @@ public class OrderViewModel {
         if (delayMinutes > 0)
             delayMinutesStr = "+" + delayMinutesStr;
 
-        if (_type == MeetingType.Pickup)
+        if (IsPickup())
             CTADelayPickup.set(delayMinutesStr);
         else
             CTADelayDelivery.set(delayMinutesStr);
@@ -141,17 +154,50 @@ public class OrderViewModel {
 
         Name.set(_address.Name());
 
-        _altAddress = _type == MeetingType.Pickup ? modelData.DeliveryAddress() : modelData.PickupAddress();
+        _altAddress = IsPickup() ? modelData.DeliveryAddress() : modelData.PickupAddress();
         FromTo.set(_altAddress.Name());
 
+        setDetailsJustForOrder();
+
+        String info = _address.Instructions() + (!_address.Notes().isEmpty() ? "\n" +  _address.Notes() : "");
+        Instructions.set(!info.isEmpty() ? info : "--");
+    }
+
+    private void setDetailsJustForAggregatedOrder() {
+        Order modelData = _order;
+
         String cargo = "";
+        Integer noOfItems = 0;
         Double cargoItemsPrice = 0.;
+
+        AgrCargo.add(modelData.Cargo());
+        for (List<Cargo> _orderCargo : AgrCargo) {
+            if (_orderCargo != null) {
+                cargo += "\n" + _orderCargo.size() + " item(s)\n";
+                for (Cargo item : _orderCargo) {
+                    cargo += item.Count() + "x " + item.Title() + " € " + item.Price() + "\n";
+                    cargoItemsPrice += (item.Count() * item.Price());
+                }
+
+                noOfItems += _orderCargo.size();
+            }
+        }
+
+        if (!cargo.isEmpty())
+            cargo = cargo.substring(0, cargo.length() - 1);
+
+        Details.set(noOfItems + " goods : " + AgrCargo.size() + " orders" + cargo);
+    }
+
+    private void setDetailsJustForOrder() {
+        Order modelData = _order;
+
+        String cargo = "";
 
         _cargo = modelData.Cargo();
         if (_cargo != null) {
             for (Cargo item : _cargo) {
                 cargo += item.Count() + "x " + item.Title() + " € " + item.Price() + "\n";
-                cargoItemsPrice += (item.Count() * item.Price());
             }
 
             if (!cargo.isEmpty())
@@ -161,17 +207,23 @@ public class OrderViewModel {
         Details.set(_order.NumberGoods() + " goods\n" + cargo);
 
         String pay = "";
-        Double priceGoods = (modelData.PriceGoods() != Double.NaN ? modelData.PriceGoods() : cargoItemsPrice);
+        Double priceGoods = (IsDelivery() ? (modelData.PriceGoodsDelivery() + modelData.PriceTransportDelivery()) :
+                                            (modelData.PriceGoodsPickup() + modelData.PriceTransportPickup()));
 
-        pay += "Total: " + _df.format(priceGoods + modelData.PriceDelivery()) + "\nGoods: " + _df.format(priceGoods) + "\nDelivery: " + _df.format(modelData.PriceDelivery());
+        pay += "Total: " + _df.format(priceGoods) + "\nGoods: " + _df.format(IsDelivery() ? modelData.PriceGoodsDelivery() : modelData.PriceGoodsPickup()) +
+                                                    "\nDelivery: " + _df.format(IsDelivery() ? modelData.PriceTransportDelivery() : modelData.PriceTransportPickup());
         Pay.set(pay);
+    }
 
-        String info = _address.Instructions() + (!_address.Notes().isEmpty() ? "\n" +  _address.Notes() : "");
-        Instructions.set(!info.isEmpty() ? info : "--");
+    public void AddAgrCargo(List<Cargo> agrCargo) {
+        AgrCargo.add(agrCargo);
+        setDetailsJustForAggregatedOrder();
     }
 
     public void AdvanceOrderStatus(String comments) {
         MEETING_STATUS currentStatus = OnStatusChanged.get();
+
+        setDetailsJustForOrder();
 
         switch (currentStatus) {
             case PICKUP_DRIVING:
@@ -182,6 +234,8 @@ public class OrderViewModel {
 
             case PICKUP_ARRIVED:
                 currentStatus = MEETING_STATUS.PICKUP_DONE;
+                IsMeetingMode.set(false);
+                IsDrivingMode.set(true);
                 break;
 
             case DELIVERY_DRIVING:
@@ -192,6 +246,8 @@ public class OrderViewModel {
 
             case DELIVERY_ARRIVED:
                 currentStatus = MEETING_STATUS.DELIVERY_DONE;
+                IsMeetingMode.set(false);
+                IsDrivingMode.set(true);
                 break;
         }
 

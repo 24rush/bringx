@@ -22,12 +22,21 @@ import java.util.Map;
 import java.util.Objects;
 
 class URLS {
+
     public static String LoginURL = "http://dev-auftrag.bringx.com/json/login/1";
     public static String LogoutURL = "http://dev-auftrag.bringx.com/json/drivers/%s/logout?auth_token=%s&version=1.0.1";
     public static String OrdersETA = "http://dev-auftrag.bringx.com/json/drivers/%s/orders-eta?auth_token=%s&version=1.0.1";
     public static String OrdersInfo = "http://dev-auftrag.bringx.com/json/drivers/%s/orders/%s?auth_token=%s&version=1.0.1";
     public static String StatusURL = "http://dev-auftrag.bringx.com/json/drivers/%s/orders/%s/status?auth_token=%s&version=1.0.1";
     public static String PositionUpdateURL = "http://dev-auftrag.bringx.com/json/driver/%s";
+  /*
+    public static String LoginURL = "http://auftrag.bringx.com/json/login/1";
+    public static String LogoutURL = "http://auftrag.bringx.com/json/drivers/%s/logout?auth_token=%s&version=1.0.1";
+    public static String OrdersETA = "http://auftrag.bringx.com/json/drivers/%s/orders-eta?auth_token=%s&version=1.0.1";
+    public static String OrdersInfo = "http://auftrag.bringx.com/json/drivers/%s/orders/%s?auth_token=%s&version=1.0.1";
+    public static String StatusURL = "http://auftrag.bringx.com/json/drivers/%s/orders/%s/status?auth_token=%s&version=1.0.1";
+    public static String PositionUpdateURL = "http://auftrag.bringx.com/json/driver/%s";
+    */
 }
 
 public class ServiceProxy {
@@ -533,8 +542,10 @@ class UpdatePositionTask extends AsyncTaskReport<Object, Void, Boolean> {
         try {
             JSONObject jsonParams = new JSONObject();
 
-            jsonParams.put("latitude", (double) (_params[0]) * 1.0);
-            jsonParams.put("longitude", (double) (_params[1]) * 1.0);
+            // Reversed lat/long
+            jsonParams.put("latitude", (double) (_params[1]) * 1.0);
+            jsonParams.put("longitude", (double) (_params[0]) * 1.0);
+
             jsonParams.put("uid", (String) _params[2]);
             jsonParams.put("mobileid", (String) App.DeviceManager().DeviceId());
             jsonParams.put("ts_pos", (long) _params[3]);
