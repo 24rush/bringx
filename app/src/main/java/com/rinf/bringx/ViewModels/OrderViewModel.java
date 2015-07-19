@@ -132,18 +132,19 @@ public class OrderViewModel {
             selectedCTA = modelData.CtaPickupTime();
         }
 
-        long delayMinutes = TimeUnit.MINUTES.convert(eta.getTime() - modelData.CtaDeliveryTime().getTime(), TimeUnit.MILLISECONDS);
+        long delayMinutes = TimeUnit.MINUTES.convert(eta.getTime() - selectedCTA.getTime(), TimeUnit.MILLISECONDS);
         delayMinutesStr = String.valueOf(delayMinutes) + "\"";
 
         if (delayMinutes > 0)
             delayMinutesStr = "+" + delayMinutesStr;
 
+        delayMinutesStr = "h (delay " + delayMinutesStr + ")";
         if (IsPickup())
             CTADelayPickup.set(delayMinutesStr);
         else
             CTADelayDelivery.set(delayMinutesStr);
 
-        ETAHours.set(android.text.format.DateFormat.format("HH:mm", eta) + " " + delayMinutesStr);
+        ETAHours.set(android.text.format.DateFormat.format("kk:mm", eta) + " " + delayMinutesStr);
         // Date is not needed anymore
         //ETADate.set(android.text.format.DateFormat.format(" - dd.MM.yyyy", eta) + " - " + ParentOrderId);
 
@@ -164,13 +165,10 @@ public class OrderViewModel {
     }
 
     private void setDetailsJustForAggregatedOrder() {
-        Order modelData = _order;
-
         String cargo = "";
         Integer noOfItems = 0;
         Double cargoItemsPrice = 0.;
 
-        AgrCargo.add(modelData.Cargo());
         for (List<Cargo> _orderCargo : AgrCargo) {
             if (_orderCargo != null) {
                 cargo += "\n" + _orderCargo.size() + " item(s)\n";
@@ -216,6 +214,9 @@ public class OrderViewModel {
     }
 
     public void AddAgrCargo(List<Cargo> agrCargo) {
+        if (AgrCargo.size() == 0)
+            AgrCargo.add(_order.Cargo());
+
         AgrCargo.add(agrCargo);
         setDetailsJustForAggregatedOrder();
     }

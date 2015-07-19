@@ -18,6 +18,7 @@ import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -46,11 +47,13 @@ import com.rinf.bringx.utils.AlertGenerator;
 import com.rinf.bringx.utils.ExpandableTextView;
 import com.rinf.bringx.utils.Localization;
 import com.rinf.bringx.utils.Log;
+import com.rinf.bringx.utils.URLS;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+
 
 class ExpandableControl {
     private ExpandableTextView _control;
@@ -201,7 +204,7 @@ public class LoginActivity extends ActionBarActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#53284f")));
+        actionBar.setBackgroundDrawable(new ColorDrawable(URLS.IsDebug == false ? Color.parseColor("#53284f") : Color.RED));
         actionBar.setCustomView(R.layout.custom_action_bar);
         actionBar.setDisplayShowTitleEnabled(false);
         actionBar.setDisplayShowCustomEnabled(true);
@@ -235,6 +238,7 @@ public class LoginActivity extends ActionBarActivity {
                 if (value == false) {
                     Controls.get(R.id.lbl_no_more_jobs).setVisibility(View.GONE);
                     Controls.get(R.id.layout_meetings).setVisibility(View.GONE);
+                    Controls.get(R.id.layout_login).setVisibility(View.VISIBLE);
                     return;
                 }
 
@@ -350,7 +354,7 @@ public class LoginActivity extends ActionBarActivity {
                 }
 
                 String uri = "tel:" + context.CurrentDestination().Phone();
-                Intent intent = new Intent(Intent.ACTION_CALL);
+                Intent intent = new Intent(Intent.ACTION_DIAL);
                 intent.setData(Uri.parse(uri));
                 startActivity(intent);
             }
@@ -515,8 +519,9 @@ public class LoginActivity extends ActionBarActivity {
         unregisterReceiver(mConnReceiver);
 
         if (mMediaPlayer != null) {
-            mMediaPlayer.stop();
-            mMediaPlayer = null;
+            Log.d("onPause");
+            //mMediaPlayer.stop();
+            //mMediaPlayer = null;
         }
     }
 
@@ -527,6 +532,13 @@ public class LoginActivity extends ActionBarActivity {
         }
 
         try {
+            if (App.IsVisible() == false)
+            {
+                PowerManager pm = (PowerManager) App.Context().getSystemService(Context.POWER_SERVICE);
+                PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.FULL_WAKE_LOCK,"BringxLock");
+                wl.acquire(10000);
+            }
+
             Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
             mMediaPlayer = new MediaPlayer();
             mMediaPlayer.setDataSource(App.Context(), soundUri);
@@ -628,6 +640,7 @@ public class LoginActivity extends ActionBarActivity {
                             public void run() {
                                 stopService(new Intent(LoginActivity.this, GPSTracker.class));
                                 finish();
+                                System.exit(0);
                             }
                         });
                     }

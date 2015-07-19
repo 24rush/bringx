@@ -99,9 +99,9 @@ public class MeetingsViewModel {
                     // Here we should have all the orders we need
                     // Start by breaking them in pickup/delivery then sort them
                     // _orderedMeetings contains the old meetings
-                    OrderedMeeting firstMeeting = null;
-                    if (_orderedMeetings.size() > 0) {
-                        firstMeeting = _orderedMeetings.get(0);
+                    String firstMeetingAdr = null;
+                    if (OrdersList.size() > 0) {
+                        firstMeetingAdr = OrdersList.get(0).Address.get();
                     }
 
                     _orderedMeetings.clear();
@@ -116,16 +116,6 @@ public class MeetingsViewModel {
                     if (_orderedMeetings.size() > 0) {
                         // OrderedMeetings contains the ordered list of pickup and deliveries
                         Collections.sort(_orderedMeetings);
-                        OrderedMeeting newFirstMeeting = _orderedMeetings.get(0);
-
-                        // If there were no more orders and a new one arrives then trigger alert
-                        // or if there is an actual order change
-                        if ((OnNoMoreJobs.get() == true && newFirstMeeting != null) || (firstMeeting != null && newFirstMeeting != null && (!firstMeeting.OrderId.equals(newFirstMeeting.OrderId) || firstMeeting.Type != newFirstMeeting.Type ||
-                                !firstMeeting.OrderVersion.equals(newFirstMeeting.OrderVersion) || firstMeeting.ETA.compareTo(newFirstMeeting.ETA) != 0))) {
-                            // Play sound and display alert
-                            Log.d("First meeting changed");
-                            OnFirstMeetingChanged.set(true);
-                        }
                     }
 
                     OrdersList.clear();
@@ -148,6 +138,18 @@ public class MeetingsViewModel {
                     }
 
                     if (OrdersList.size() > 0) {
+                        // If there were no more orders and a new one arrives then trigger alert
+                        // or if there is an actual order change
+                        OrderViewModel newFirstMeeting = OrdersList.get(0);
+                        if ((OnNoMoreJobs.get() == true && newFirstMeeting != null) ||
+                                (firstMeetingAdr != null && newFirstMeeting != null && !firstMeetingAdr.equals(newFirstMeeting.Address.get())))
+                        {
+                            // Play sound and display alert
+                            Log.d("First meeting changed");
+                            OnFirstMeetingChanged.set(true);
+                        }
+
+                        // Aggregate order cargo
                         OrderViewModel agrMeeting = OrdersList.get(0);
                         for (int i = 1; i < OrdersList.size(); i++) {
                             OrderViewModel currOrder = OrdersList.get(i);
@@ -198,13 +200,16 @@ public class MeetingsViewModel {
                 IStatusHandler<Boolean, Object> statusHandler = new IStatusHandler<Boolean, Object>() {
                     @Override
                     public void OnError(com.rinf.bringx.utils.Error err, Object... p) {
-                        Log.e("Error " + err.Message + "(" + err.Code + ") occurred on status update. Saving to local cache.");
+                        Log.e("Error " + err.Message + "(" + err.Code + ") occurred on status update.");
 
                         // Error occurred during status update
                         String orderId = (String) p[0];
                         String status = (String) p[1];
 
-                        App.StorageManager().Setting().appendToKey(SettingsStorage.PENDING_STATUSES, orderId + "," + status);
+                        if (err.Code != 500) {
+                            Log.d("Saving to local cache for later update");
+                            App.StorageManager().Setting().appendToKey(SettingsStorage.PENDING_STATUSES, orderId + "," + status);
+                        }
                     }
 
                     @Override
@@ -228,6 +233,7 @@ public class MeetingsViewModel {
 
                     if (nextAddress.equals(_currentAddress)) {
                         CurrentMeeting.AdvanceOrderStatus("");
+
                         return;
                     }
                 }
@@ -296,7 +302,7 @@ public class MeetingsViewModel {
     }
 
     private void loadCurrentAndNextMeetings(boolean removeHeadOfList) {
-        if (removeHeadOfList) {
+        if (removeHeadOfList && OrdersList.size() > 0) {
             OrdersList.remove(0);
 
             Intent gpsServiceIntent = new Intent(App.Context(), GPSTracker.class);
@@ -309,7 +315,11 @@ public class MeetingsViewModel {
             CurrentMeeting.PreLoad(OrdersList.get(0));
 
             if (OrdersList.size() > 1) {
-                NextMeeting.PreLoad(OrdersList.get(1));
+                int agrOrderCount = CurrentMeeting.AgrCargo.size();
+                if (agrOrderCount > 0 && OrdersList.size() > agrOrderCount)
+                    NextMeeting.PreLoad(OrdersList.get(agrOrderCount));
+                else
+                    NextMeeting.PreLoad(OrdersList.get(1));
             }
 
             CanDisplayMeetings.set(true);
