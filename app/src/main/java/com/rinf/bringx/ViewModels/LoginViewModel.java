@@ -104,7 +104,7 @@ public class LoginViewModel {
 
             @Override
             public void OnSuccess(JSONObject response, String... ctx) {
-                UserName.set("");
+                //UserName.set("");
                 Password.set("");
                 DriverId.set("");
                 AuthToken.set("");

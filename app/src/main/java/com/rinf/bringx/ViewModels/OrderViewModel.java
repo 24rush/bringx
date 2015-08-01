@@ -56,6 +56,9 @@ public class OrderViewModel {
     public Address CurrentDestination() {
         return _address;
     }
+    public Address AlternateDestination() {
+        return _altAddress;
+    }
 
     public Order ModelData() {
         return _order;
@@ -95,6 +98,7 @@ public class OrderViewModel {
         _order = other._order;
         _type = other._type;
         _address = other._address;
+        _altAddress = other._altAddress;
         _cargo = other._cargo;
 
         AgrCargo = other.AgrCargo;

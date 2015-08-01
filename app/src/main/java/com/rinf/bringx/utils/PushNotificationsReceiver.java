@@ -42,7 +42,7 @@ public class PushNotificationsReceiver extends BroadcastReceiver {
                         final Intent notificationIntent = new Intent(App.Context(), LoginActivity.class);
                         notificationIntent.setAction(Intent.ACTION_MAIN);
                         notificationIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-                        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                         context.startActivity(notificationIntent);
                     }
                 }

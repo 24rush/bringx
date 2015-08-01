@@ -285,7 +285,8 @@ public class MeetingsViewModel {
 
                     @Override
                     public void OnSuccess(Object response, String... ctx) {
-                        App.StorageManager().Setting().removeFromKey(SettingsStorage.PENDING_STATUSES, ctx[1] + "," + ctx[2]);
+                        Log.d("Removing key " + ctx[0] + " with status " + ctx[1]);
+                        App.StorageManager().Setting().removeFromKey(SettingsStorage.PENDING_STATUSES, ctx[0] + "," + ctx[1]);
                     }
                 });
 

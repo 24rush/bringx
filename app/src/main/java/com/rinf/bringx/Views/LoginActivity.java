@@ -475,6 +475,21 @@ public class LoginActivity extends ActionBarActivity {
         Bindings.BindVisible(Controls.get(R.id.layout_row_fromto), VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode);
         Bindings.BindText(Controls.get(R.id.value_meeting_fromTo), VM.MeetingsViewModel.CurrentMeeting.FromTo);
 
+        Bindings.BindCommand(Controls.get(R.id.layout_row_fromto), new ICommand<OrderViewModel>() {
+            @Override
+            public void Execute(OrderViewModel context) {
+                if (context.AlternateDestination().Phone().isEmpty()) {
+                    Toast.makeText(LoginActivity.this, getString(R.string.no_phone_details), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                String uri = "tel:" + context.AlternateDestination().Phone();
+                Intent intent = new Intent(Intent.ACTION_DIAL);
+                intent.setData(Uri.parse(uri));
+                startActivity(intent);
+            }
+        }, VM.MeetingsViewModel.CurrentMeeting);
+
         // Pay
         Bindings.BindVisible(Controls.get(R.id.layout_row_pay), VM.MeetingsViewModel.CurrentMeeting.IsMeetingMode);
         Bindings.BindText(Controls.get(R.id.value_meeting_pay), VM.MeetingsViewModel.CurrentMeeting.Pay);
@@ -639,8 +654,8 @@ public class LoginActivity extends ActionBarActivity {
                             @Override
                             public void run() {
                                 stopService(new Intent(LoginActivity.this, GPSTracker.class));
-                                finish();
-                                System.exit(0);
+                                //finish();
+                                //System.exit(0);
                             }
                         });
                     }

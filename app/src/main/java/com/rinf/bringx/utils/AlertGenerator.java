@@ -28,6 +28,7 @@ public class AlertGenerator {
         final AlertDialog.Builder alertDialog = new AlertDialog.Builder(ctx)
                 .setTitle(localization.getText(titleId))
                 .setMessage(localization.getText(msgId))
+                .setCancelable(false)
                 .setPositiveButton(localization.getText(R.string.btn_ok),
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
@@ -68,6 +69,7 @@ public class AlertGenerator {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(ctx)
                 .setTitle(localization.getText(titleId))
                 .setMessage(localization.getText(msgId))
+                .setCancelable(false)
                 .setPositiveButton(localization.getText(R.string.btn_ok),
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
