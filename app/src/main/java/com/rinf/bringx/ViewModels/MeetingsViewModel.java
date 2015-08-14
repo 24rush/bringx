@@ -117,12 +117,12 @@ public class MeetingsViewModel {
                         // OrderedMeetings contains the ordered list of pickup and deliveries
                         Collections.sort(_orderedMeetings);
                     }
-
+//Log.d("#1 meetings " + _orderedMeetings);
                     OrdersList.clear();
                     for (OrderedMeeting orderedJob : _orderedMeetings) {
                         for (int i = 0; i < response.size(); i++) {
                             Order order = response.get(i);
-
+//Log.d("#2 verify " + order);
                             // Validate finalized Meetings
                             if (orderedJob.Type == MeetingType.Delivery && order.DeliveryAddress().Status() == "delivery-done")
                                 continue;
@@ -141,7 +141,7 @@ public class MeetingsViewModel {
                         // If there were no more orders and a new one arrives then trigger alert
                         // or if there is an actual order change
                         OrderViewModel newFirstMeeting = OrdersList.get(0);
-                        if ((OnNoMoreJobs.get() == true && newFirstMeeting != null) ||
+                        if ((OnNoMoreJobs.get() == true && newFirstMeeting != null) || (OnNoMoreJobs.get() == false && newFirstMeeting == null) ||
                                 (firstMeetingAdr != null && newFirstMeeting != null && !firstMeetingAdr.equals(newFirstMeeting.Address.get())))
                         {
                             // Play sound and display alert
@@ -164,12 +164,21 @@ public class MeetingsViewModel {
                         OnNoMoreJobs.set(false);
                         loadCurrentAndNextMeetings(false);
                     } else {
+                        // If we go from an order to empty list then trigger the alarm
+                        if (OnNoMoreJobs.get() == false) {
+                            // Play sound and display alert
+                            Log.d("First meeting changed");
+                            OnFirstMeetingChanged.set(true);
+                        }
+
                         // No Orders to process
                         OnNoMoreJobs.set(true);
                     }
 
                     Intent gpsServiceIntent = new Intent(App.Context(), GPSTracker.class);
                     gpsServiceIntent.putExtra("ordersCount", String.valueOf(OrdersList.size() / 2 + OrdersList.size() % 2));
+                    gpsServiceIntent.putExtra("uid", VM.LoginViewModel.DriverId.get());
+                    gpsServiceIntent.putExtra("mobileid", App.DeviceManager().DeviceId());
                     App.Context().startService(gpsServiceIntent);
                 }
             };

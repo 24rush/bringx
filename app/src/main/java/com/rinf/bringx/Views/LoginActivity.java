@@ -434,7 +434,9 @@ public class LoginActivity extends ActionBarActivity {
                 if (value == false)
                     return;
 
-                if (App.IsVisible() == false) {
+                Log.d("OnFirstMeeting changed app is visible: " + App.IsVisible());
+
+                if (!App.IsVisible()) {
                     App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, true);
 
                     final Intent notificationIntent = new Intent(App.Context(), LoginActivity.class);
@@ -444,7 +446,6 @@ public class LoginActivity extends ActionBarActivity {
                 } else {
                     playSoundAndDisplayAlert();
                 }
-
             }
         });
 
@@ -524,34 +525,50 @@ public class LoginActivity extends ActionBarActivity {
         Log.d("onResume");
 
         registerReceiver(mConnReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
+        if (App.wasInBackground)
+        {
+            //Do specific came-here-from-background code
+        }
+
+        App.stopActivityTransitionTimer();
+
+        if (App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
+            App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
+
+            playSoundAndDisplayAlert();
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d("onPause");
         App.OnActivityPaused();
+        App.startActivityTransitionTimer();
 
         unregisterReceiver(mConnReceiver);
 
         if (mMediaPlayer != null) {
-            Log.d("onPause");
+            Log.d("onPause mediaPlayer");
             //mMediaPlayer.stop();
             //mMediaPlayer = null;
         }
     }
 
-    private void playSoundAndDisplayAlert() {
-        if (mMediaPlayer != null) {
-            Log.d("Sound alert already playing");
-            return;
-        }
-
+    private synchronized void playSoundAndDisplayAlert() {
         try {
-            if (App.IsVisible() == false)
+            Log.d("playSound app visible: " + App.IsVisible());
+            if (!App.IsVisible())
             {
                 PowerManager pm = (PowerManager) App.Context().getSystemService(Context.POWER_SERVICE);
                 PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.FULL_WAKE_LOCK,"BringxLock");
                 wl.acquire(10000);
+            }
+
+            if (mMediaPlayer != null || !App.IsVisible()) {
+                Log.d("Sound alert already playing or app is in background");
+                return;
             }
 
             Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
@@ -565,21 +582,22 @@ public class LoginActivity extends ActionBarActivity {
                 mMediaPlayer.prepare();
                 mMediaPlayer.start();
             }
+
+            AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_confirmation_title, R.string.msg_alert_first_meeting_changed, new Callable() {
+                @Override
+                public Object call() throws Exception {
+                    if (mMediaPlayer != null) {
+                        mMediaPlayer.stop();
+                        mMediaPlayer = null;
+                    }
+
+                    return null;
+                }
+            });
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_confirmation_title, R.string.msg_alert_first_meeting_changed, new Callable() {
-            @Override
-            public Object call() throws Exception {
-                if (mMediaPlayer != null) {
-                    mMediaPlayer.stop();
-                    mMediaPlayer = null;
-                }
-
-                return null;
-            }
-        });
     }
 
     public void showSettingsAlert() {

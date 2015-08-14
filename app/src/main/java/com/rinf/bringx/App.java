@@ -7,6 +7,9 @@ import com.rinf.bringx.utils.DeviceManager;
 import com.rinf.bringx.utils.Requester;
 import com.rinf.bringx.storage.Storage;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class App extends Application {
 
     private static Context _context;
@@ -61,4 +64,33 @@ public class App extends Application {
     }
 
     private static boolean activityVisible;
+
+    private static Timer mActivityTransitionTimer;
+    private static TimerTask mActivityTransitionTimerTask;
+    public static boolean wasInBackground;
+    private static final long MAX_ACTIVITY_TRANSITION_TIME_MS = 2000;
+
+    public static void startActivityTransitionTimer() {
+        mActivityTransitionTimer = new Timer();
+        mActivityTransitionTimerTask = new TimerTask() {
+            public void run() {
+                wasInBackground = true;
+            }
+        };
+
+        mActivityTransitionTimer.schedule(mActivityTransitionTimerTask,
+                MAX_ACTIVITY_TRANSITION_TIME_MS);
+    }
+
+    public static void stopActivityTransitionTimer() {
+        if (mActivityTransitionTimerTask != null) {
+            mActivityTransitionTimerTask.cancel();
+        }
+
+        if (mActivityTransitionTimer != null) {
+            mActivityTransitionTimer.cancel();
+        }
+
+        wasInBackground = false;
+    }
 }

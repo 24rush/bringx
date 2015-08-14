@@ -70,8 +70,8 @@ public class ServiceProxy {
         ordersListTask.execute();
     }
 
-    public void UpdatePosition(Double latitude, Double longitude, String uid, Long ts) {
-        UpdatePositionTask updatePositionTask = new UpdatePositionTask(_statusHandler, latitude, longitude, uid, ts);
+    public void UpdatePosition(Double latitude, Double longitude, String uid, Long ts, float speed, float bearing) {
+        UpdatePositionTask updatePositionTask = new UpdatePositionTask(_statusHandler, latitude, longitude, uid, ts, speed, bearing);
         updatePositionTask.execute();
     }
 
@@ -513,7 +513,7 @@ class UpdatePositionTask extends AsyncTaskReport<Object, Void, Boolean> {
 
     @Override
     protected Boolean doInBackground(Object... params) {
-        if (_params.length != 4) {
+        if (_params.length != 6) {
             return false;
         }
 
@@ -531,6 +531,9 @@ class UpdatePositionTask extends AsyncTaskReport<Object, Void, Boolean> {
             jsonParams.put("uid", (String) _params[2]);
             jsonParams.put("mobileid", (String) App.DeviceManager().DeviceId());
             jsonParams.put("ts_pos", (long) _params[3]);
+
+            jsonParams.put("velocity", (float) _params[4]);
+            jsonParams.put("heading", (float) _params[5]);
 
             String url = String.format(URLS.PositionUpdateURL, _params[2]);
             jsonObj = new JSONObject(App.Requester().POST(url, jsonParams));

@@ -36,6 +36,9 @@ public class GPSTracker extends Service implements LocationListener {
     double latitude = 0;
     double longitude = 0;
 
+    float speed = 0;
+    float bearing = 0;
+
     private static final long MIN_TIME_BW_UPDATES = 1000 * 20 * 1; // 20 seconds
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
 
@@ -73,6 +76,9 @@ public class GPSTracker extends Service implements LocationListener {
         if (location != null) {
             longitude = location.getLongitude();
             latitude = location.getLatitude();
+
+            speed = location.getSpeed();
+            bearing = location.getBearing();
         }
     }
 
@@ -95,7 +101,7 @@ public class GPSTracker extends Service implements LocationListener {
             registerLocationUpdateFromProvider(LocationManager.GPS_PROVIDER);
 
             // Make first update
-            onLocationUpdated(longitude, latitude);
+            onLocationUpdated(longitude, latitude, speed, bearing);
         }
         catch (Exception e)
         {
@@ -128,13 +134,29 @@ public class GPSTracker extends Service implements LocationListener {
         return longitude;
     }
 
+    private float getSpeed() {
+        if (location != null) {
+            speed = location.getSpeed();
+        }
+
+        return speed;
+    }
+
+    private float getBearing() {
+        if (location != null) {
+            bearing = location.getBearing();
+        }
+
+        return bearing;
+    }
+
     @Override
     public void onLocationChanged(Location newLocation) {
         if (newLocation == null)
             return;
 
         Log.e("location changed to: " + newLocation.getLongitude());
-        onLocationUpdated(newLocation.getLongitude(), newLocation.getLatitude());
+        onLocationUpdated(newLocation.getLongitude(), newLocation.getLatitude(), newLocation.getSpeed(), newLocation.getBearing());
     }
  
     @Override
@@ -149,7 +171,7 @@ public class GPSTracker extends Service implements LocationListener {
 
         if (userDisabledGPS && userDisabledNetwork) {
             Log.d("Both location providers disabled. Setting (0, 0).");
-            onLocationUpdated(0, 0);
+            onLocationUpdated(0, 0, 0, 0);
         }
     }
  
@@ -186,7 +208,7 @@ public class GPSTracker extends Service implements LocationListener {
             _oCount = extras.getString("ordersCount");
 
             if (_oCount != null) {
-                onLocationUpdated(getLongitude(), getLatitude());
+                onLocationUpdated(getLongitude(), getLatitude(), getSpeed(), getBearing());
             } else {
                 _uid = extras.getString("uid");
                 _mobileId = (String) extras.getString("mobileid");
@@ -209,7 +231,7 @@ public class GPSTracker extends Service implements LocationListener {
         stopLocationUpdates();
     }
 
-    private void onLocationUpdated(double longitude, double latitude) {
+    private void onLocationUpdated(double longitude, double latitude, float speed, float bearing) {
         Log.d(String.valueOf(longitude) + ' ' + String.valueOf(latitude));
 
         Notification notification = new Notification.Builder(this)
@@ -234,6 +256,6 @@ public class GPSTracker extends Service implements LocationListener {
         }
 
         if (!_uid.isEmpty())
-            _sp.UpdatePosition(latitude, longitude, _uid, System.currentTimeMillis() / 1000L);
+            _sp.UpdatePosition(latitude, longitude, _uid, System.currentTimeMillis() / 1000L, speed, bearing);
     }
 }
