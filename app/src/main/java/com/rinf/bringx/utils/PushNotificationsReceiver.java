@@ -20,6 +20,11 @@ public class PushNotificationsReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d("Received push notification");
 
+        if (VM.LoginViewModel != null && VM.LoginViewModel.IsLoggedIn.get() == false) {
+            Log.d("No user is logged in");
+            return;
+        }
+
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(App.Context());
         String messageType = gcm.getMessageType(intent);
         Bundle extras = intent.getExtras();

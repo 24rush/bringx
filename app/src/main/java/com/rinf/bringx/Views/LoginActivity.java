@@ -533,7 +533,8 @@ public class LoginActivity extends ActionBarActivity {
 
         App.stopActivityTransitionTimer();
 
-        if (App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
+        if (VM.LoginViewModel != null && VM.LoginViewModel.IsLoggedIn.get() == true &&
+                App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
             App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
 
             playSoundAndDisplayAlert();

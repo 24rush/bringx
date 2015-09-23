@@ -205,7 +205,7 @@ public class MeetingsViewModel {
 
         CurrentMeeting.OnStatusChanged.addObserver(new INotifier<MEETING_STATUS>() {
             @Override
-            public void OnValueChanged(MEETING_STATUS value) {
+            public void OnValueChanged(final MEETING_STATUS value) {
                 IStatusHandler<Boolean, Object> statusHandler = new IStatusHandler<Boolean, Object>() {
                     @Override
                     public void OnError(com.rinf.bringx.utils.Error err, Object... p) {
@@ -223,7 +223,6 @@ public class MeetingsViewModel {
 
                     @Override
                     public void OnSuccess(Boolean response, Object... p) {
-
                     }
                 };
 
@@ -257,6 +256,7 @@ public class MeetingsViewModel {
                         if (order.ParentOrderId.equals(CurrentMeeting.ParentOrderId)) {
                             order.SetStatus(value);
                             OrdersList.remove(order);
+                            App.StorageManager().Orders().remove(order.ParentOrderId);
                             break;
                         }
                     }
@@ -289,12 +289,13 @@ public class MeetingsViewModel {
                 ServiceProxy sp = new ServiceProxy(new IStatusHandler<Object, String>() {
                     @Override
                     public void OnError(com.rinf.bringx.utils.Error err, String... ctx) {
-
+                        Log.d("Removing key (onError)" + ctx[0] + " with status " + ctx[1]);
+                        App.StorageManager().Setting().removeFromKey(SettingsStorage.PENDING_STATUSES, ctx[0] + "," + ctx[1]);
                     }
 
                     @Override
                     public void OnSuccess(Object response, String... ctx) {
-                        Log.d("Removing key " + ctx[0] + " with status " + ctx[1]);
+                        Log.d("Removing key (onSuccess)" + ctx[0] + " with status " + ctx[1]);
                         App.StorageManager().Setting().removeFromKey(SettingsStorage.PENDING_STATUSES, ctx[0] + "," + ctx[1]);
                     }
                 });
@@ -313,11 +314,25 @@ public class MeetingsViewModel {
 
     private void loadCurrentAndNextMeetings(boolean removeHeadOfList) {
         if (removeHeadOfList && OrdersList.size() > 0) {
+            String removedOrderId = OrdersList.get(0).ParentOrderId;
             OrdersList.remove(0);
 
             Intent gpsServiceIntent = new Intent(App.Context(), GPSTracker.class);
             gpsServiceIntent.putExtra("ordersCount", String.valueOf(OrdersList.size() / 2 + OrdersList.size() % 2));
             App.Context().startService(gpsServiceIntent);
+
+            if (OrdersList.size() == 0) {
+                Log.d("Order is no more required. Remove from cache");
+                App.StorageManager().Orders().remove(removedOrderId);
+            } else {
+                for (OrderViewModel order : OrdersList) {
+                    if (order.ParentOrderId.equals(removedOrderId))
+                        break;
+
+                    Log.d("Order is no more required. Remove from cache");
+                    App.StorageManager().Orders().remove(removedOrderId);
+                }
+            }
         }
 
         if (OrdersList.size() > 0) {
