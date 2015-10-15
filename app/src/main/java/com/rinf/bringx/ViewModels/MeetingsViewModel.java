@@ -62,6 +62,9 @@ public class MeetingsViewModel {
     public Observable<Boolean> CanDisplayMeetings = new Observable<Boolean>(false);
     public Observable<Boolean> OnFirstMeetingChanged = new Observable<Boolean>(false);
 
+    public Observable<Boolean> OnMessageReceived = new Observable<>(false);
+    public String Message = "";
+
     public Observable<Boolean> IsError = new Observable<Boolean>(false);
     public String Error;
 
@@ -362,6 +365,11 @@ public class MeetingsViewModel {
         if (newMeetingsList != null) {
             _meetingsListStatusHandler.OnSuccess(newMeetingsList);
         }
+    }
+
+    public void OnMessageReceived(String message) {
+        Message = message;
+        OnMessageReceived.set(true);
     }
 
     public void GetMeetingsList() {

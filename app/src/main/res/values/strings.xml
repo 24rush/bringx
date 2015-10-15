@@ -50,4 +50,5 @@
     <string name="lbl_fill_rejected_reason">Please fill in the reason below:</string>
     <string name="msg_alert_meetings_error">Error</string>
     <string name="msgAnyComments">Any comments?</string>
+    <string name="msg_alert_warning_title">Warning</string>
 </resources>

@@ -17,6 +17,9 @@ import com.rinf.bringx.R;
 import com.rinf.bringx.utils.Log;
 import com.rinf.bringx.utils.ServiceProxy;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class GPSTracker extends Service implements LocationListener {
 
     public static int GPS_TRACKER_NOTIFICATION_ID = 11042015;
@@ -42,6 +45,8 @@ public class GPSTracker extends Service implements LocationListener {
     private static final long MIN_TIME_BW_UPDATES = 1000 * 20 * 1; // 20 seconds
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
 
+    private static Timer _timerAlive = new Timer();
+
     private static String _uid = "";
     private static String _mobileId = "";
     private static String _oCount = "0";
@@ -52,6 +57,13 @@ public class GPSTracker extends Service implements LocationListener {
 
     public GPSTracker(Context ctx) {
         mContext = ctx;
+        _timerAlive.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (!_uid.isEmpty())
+                    _sp.UpdatePosition(latitude, longitude, _uid, System.currentTimeMillis() / 1000L, speed, bearing);
+            }
+        }, 0, 2 * 60 * 1000);
     }
 
     public GPSTracker() {
@@ -226,6 +238,8 @@ public class GPSTracker extends Service implements LocationListener {
     @Override
     public void onDestroy() {
         Log.d("Destroying GPS service.");
+
+        _timerAlive.cancel();
 
         stopForeground(true);
         stopLocationUpdates();

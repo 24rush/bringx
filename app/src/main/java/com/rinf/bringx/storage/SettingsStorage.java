@@ -12,6 +12,7 @@ public class SettingsStorage extends StorageManager {
     public static String APP_VERSION = "app-version";
     public static String REG_ID = "registration-id";
     public static String FIST_MEETING_CHANGED = "first-meeting-changed";
+    public static String MESSAGE_RECEIVED_VALUE = "message-received-value";
 
     public SettingsStorage(String user) {
         super(user);

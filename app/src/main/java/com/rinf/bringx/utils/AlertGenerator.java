@@ -63,12 +63,12 @@ public class AlertGenerator {
         alertDialog.show();
     }
 
-    public static void ShowOkAlert(Context ctx, int titleId, int msgId, final Callable onOk) {
+    public static void ShowOkAlert(Context ctx, int titleId, String message, final Callable onOk) {
         Localization localization = new Localization(ctx);
 
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(ctx)
                 .setTitle(localization.getText(titleId))
-                .setMessage(localization.getText(msgId))
+                .setMessage(message)
                 .setCancelable(false)
                 .setPositiveButton(localization.getText(R.string.btn_ok),
                         new DialogInterface.OnClickListener() {
@@ -83,5 +83,9 @@ public class AlertGenerator {
                         });
 
         alertDialog.show();
+    }
+
+    public static void ShowOkAlert(Context ctx, int titleId, int msgId, final Callable onOk) {
+        ShowOkAlert(ctx, titleId, new Localization(ctx).getText(msgId), onOk);
     }
 }

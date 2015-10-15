@@ -10,6 +10,11 @@ public class Storage {
     private SettingsStorage _settingsStorage;
     private String _userName = "";
 
+    public Storage() {
+        // Initialize storage user with last login user
+        SetCurrentUser(Credentials().getString("username"));
+    }
+
     public CredentialsStorage Credentials() {
         if (_credentialsStorage == null) {
             _credentialsStorage = new CredentialsStorage(_userName);

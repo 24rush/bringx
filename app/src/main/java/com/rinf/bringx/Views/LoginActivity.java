@@ -449,6 +449,27 @@ public class LoginActivity extends ActionBarActivity {
             }
         });
 
+        VM.MeetingsViewModel.OnMessageReceived.addObserver(new INotifier<Boolean>() {
+            @Override
+            public void OnValueChanged(Boolean value) {
+                if (value == false)
+                    return;
+
+                Log.d("OnMessage app is visible: " + App.IsVisible());
+
+                if (!App.IsVisible()) {
+                    App.StorageManager().Setting().setString(SettingsStorage.MESSAGE_RECEIVED_VALUE, VM.MeetingsViewModel.Message);
+
+                    final Intent notificationIntent = new Intent(App.Context(), LoginActivity.class);
+                    notificationIntent.setAction(Intent.ACTION_MAIN);
+                    notificationIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                    startActivity(notificationIntent);
+                } else {
+                    playSoundAndDisplayAlert(VM.MeetingsViewModel.Message);
+                }
+            }
+        });
+
         Bindings.BindChanged(VM.MeetingsViewModel.IsError, new INotifier<Boolean>() {
             @Override
             public void OnValueChanged(final Boolean value) {
@@ -533,11 +554,20 @@ public class LoginActivity extends ActionBarActivity {
 
         App.stopActivityTransitionTimer();
 
-        if (VM.LoginViewModel != null && VM.LoginViewModel.IsLoggedIn.get() == true &&
-                App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
-            App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
+        if (VM.LoginViewModel != null && VM.LoginViewModel.IsLoggedIn.get() == true) {
+            if (App.StorageManager().Setting().getBoolean(SettingsStorage.FIST_MEETING_CHANGED) == true) {
+                App.StorageManager().Setting().setBoolean(SettingsStorage.FIST_MEETING_CHANGED, false);
 
-            playSoundAndDisplayAlert();
+                playSoundAndDisplayAlert();
+            }
+
+            String message = App.StorageManager().Setting().getString(SettingsStorage.MESSAGE_RECEIVED_VALUE);
+
+            if (message != null && !message.isEmpty()) {
+                App.StorageManager().Setting().setString(SettingsStorage.MESSAGE_RECEIVED_VALUE, "");
+
+                playSoundAndDisplayAlert(message);
+            }
         }
     }
 
@@ -557,7 +587,11 @@ public class LoginActivity extends ActionBarActivity {
         }
     }
 
-    private synchronized void playSoundAndDisplayAlert() {
+    private void playSoundAndDisplayAlert() {
+        playSoundAndDisplayAlert(null);
+    }
+
+    private synchronized void playSoundAndDisplayAlert(String message) {
         try {
             Log.d("playSound app visible: " + App.IsVisible());
             if (!App.IsVisible())
@@ -584,7 +618,7 @@ public class LoginActivity extends ActionBarActivity {
                 mMediaPlayer.start();
             }
 
-            AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_confirmation_title, R.string.msg_alert_first_meeting_changed, new Callable() {
+            Callable onOk = new Callable() {
                 @Override
                 public Object call() throws Exception {
                     if (mMediaPlayer != null) {
@@ -594,7 +628,16 @@ public class LoginActivity extends ActionBarActivity {
 
                     return null;
                 }
-            });
+            };
+
+            if (message != null) {
+                AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_warning_title, message, onOk);
+
+                VM.MeetingsViewModel.Message = "";
+                VM.MeetingsViewModel.OnMessageReceived.set(false);
+            }
+            else
+                AlertGenerator.ShowOkAlert(LoginActivity.this, R.string.msg_alert_confirmation_title, R.string.msg_alert_first_meeting_changed, onOk);
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -28,10 +28,11 @@ public class PushNotificationsReceiver extends BroadcastReceiver {
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(App.Context());
         String messageType = gcm.getMessageType(intent);
         Bundle extras = intent.getExtras();
-        Log.d("Received: " + messageType + " extras: " + extras.toString());
+        Log.d("Received: " + messageType + " extras: " + extras.toString() + "msg: " + extras.getString("message"));
 
         if (!extras.isEmpty() && GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
             String newMeetingList = extras.getString("ml");
+            String message = extras.getString("message");
 
             if (newMeetingList != null) {
                 Log.d("Received new meeting list: " + newMeetingList);
@@ -39,9 +40,9 @@ public class PushNotificationsReceiver extends BroadcastReceiver {
                 MeetingsListTask meetingsListTask = new MeetingsListTask(null);
                 List<Meeting> parsedMeetings = meetingsListTask.OnMeetingsListReceived(newMeetingList);
 
-                if (parsedMeetings != null) {
-                    Log.d("App is visible: " + App.IsVisible());
+                Log.d("App is visible: " + App.IsVisible());
 
+                if (parsedMeetings != null) {
                     if (VM.MeetingsViewModel != null)
                         VM.MeetingsViewModel.OnPushReceived(parsedMeetings);
 
@@ -54,6 +55,22 @@ public class PushNotificationsReceiver extends BroadcastReceiver {
                         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                         context.startActivity(notificationIntent);
                     }
+                }
+            }
+            if (message != null) {
+                Log.d("Received new message: " + message);
+
+                if (App.IsVisible() == false) {
+                    App.StorageManager().Setting().setString(SettingsStorage.MESSAGE_RECEIVED_VALUE, message);
+
+                    final Intent notificationIntent = new Intent(App.Context(), LoginActivity.class);
+                    notificationIntent.setAction(Intent.ACTION_MAIN);
+                    notificationIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                    notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    context.startActivity(notificationIntent);
+                } else {
+                    if (VM.MeetingsViewModel != null)
+                        VM.MeetingsViewModel.OnMessageReceived(message);
                 }
             }
         }
